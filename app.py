@@ -12,7 +12,7 @@ from chainlit.playground.providers.langchain import LangchainGenericProvider
 from chainlit.playground.providers.openai import OpenAI, ChatOpenAI
 from chainlit.input_widget import Select, Slider
 
-# LLM Chace
+# LLM Cache
 from langchain.globals import set_llm_cache
 from langchain.cache import SQLiteCache
 set_llm_cache(SQLiteCache(database_path=".langchain.db"))

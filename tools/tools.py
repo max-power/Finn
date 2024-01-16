@@ -49,7 +49,7 @@ stock_dividend_tool = Tool.from_function(
 
 stock_news_tool = Tool.from_function(
     name="Stock-News-Tool",
-    func=lambda symbol: yf.Ticker(symbol).news.to_json(date_format='iso'),
+    func=lambda symbol: yf.Ticker(symbol).news, # .to_json(date_format='iso'),
     description="Useful for when you need to find news articles about a company or stock. It requires a ticker symbol as parameter. You MUST obtain a valid ticker symbol first.",
     handle_tool_error=handle_tool_error,
     args_schema = TickerSymbolSchema,

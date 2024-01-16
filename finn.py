@@ -82,12 +82,12 @@ class Finn:
     ]
 
     def tool_llm(self, temperature=0.0):
-        #return Ollama(model="mistral", temperature=temperature)
-        return OpenAI(model=self.openai_model, temperature=temperature)
+        #return Ollama(model="mistral", temperature=temperature, cache=True)
+        return OpenAI(model=self.openai_model, temperature=temperature, cache=True)
     
     def chat_llm(self, temperature=0.0):
-        #return ChatOllama(model="mistral", temperature=temperature)
-        return ChatOpenAI(model=self.openai_model, temperature=temperature)
+        #return ChatOllama(model="mistral", temperature=temperature, cache=True)
+        return ChatOpenAI(model=self.openai_model, temperature=temperature, cache=True)
 
     @property
     def agent(self):
@@ -164,7 +164,7 @@ class AgentFactory:
             agent  = agent,
             tools  = self.tools,
             memory = self.memory,
-            stop   = ["Observe:", "Final Answer"],
+            stop   = ["Observe:", "Final Answer"], # TODO: Maybe with final answer
             verbose=True,
             intermediate_steps=True,
             handle_parsing_errors=True,

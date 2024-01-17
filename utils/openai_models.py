@@ -24,7 +24,7 @@ OPENAI_MODELS = [
     "gpt-3.5-turbo",
     # Currently points to gpt-3.5-turbo-0613.
 
-    "gtp-3.5-turbo-instruct",
+    "gpt-3.5-turbo-instruct",
     # Similar capabilities as GPT-3 era models. Compatible with legacy Completions endpoint and not Chat Completions.
 
     "babbage-002",

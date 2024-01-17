@@ -21,17 +21,8 @@ set_llm_cache(SQLiteCache(database_path="db/langchain_llm_cache.db"))
 from typing import Dict, Any, List
 from chainlit.element import Element
 
-OPENAI_MODELS = [
-    "gpt-4-1106-preview", #The latest GPT-4 model with improved instruction following, JSON mode, reproducible outputs, parallel function calling, and more. Returns a maximum of 4,096 output tokens. This preview model is not yet suited for production traffic. 
-    "gpt-4-vision-preview", #Ability to understand images, in addition to all other GPT-4 Turbo capabilties. Returns a maximum of 4,096 output tokens. This is a preview model version and not suited yet for production traffic
-    "gpt-4", # Currently points to gpt-4-0613
-    "gpt-4-32k",
-    "gpt-3.5-turbo-1106", # The latest GPT-3.5 Turbo model with improved instruction following, JSON mode, reproducible outputs, parallel function calling, and more. Returns a maximum of 4,096 output tokens.
-    "gpt-3.5-turbo", # 
-    "gtp-3.5-instruct", # Similar capabilities as GPT-3 era models. Compatible with legacy Completions endpoint and not Chat Completions.
-    "babbage-002", #	Replacement for the GPT-3 ada and babbage base models.
-    "davinci-002", #Replacement for the GPT-3 curie and davinci base models.
-]
+# List of OpenAI model names
+from utils.openai_models import OPENAI_MODELS
 
 
 #model = Ollama(model="mistral")
@@ -49,12 +40,13 @@ OPENAI_MODELS = [
 ################################################################################
 # Change name of Message Author in Chainlit UI
 @cl.author_rename
-def rename(orig_author: str):
+def rename(author: str):
     mapping = {
-        "LLMMathChain": "Albert Einstein", 
+        "LLMMathChain": "CalcuBot", 
         "Chatbot": "Assistant",
     }
-    return mapping.get(orig_author, orig_author)
+    return mapping.get(author, author)
+
 
 ################################################################################
 # Update settings from Settings Panel
@@ -67,10 +59,12 @@ async def setup_agent(settings):
         max_tokens  = int(settings["max_token"]),
         cache       = settings["cache"]
     )
-    await cl.Message(content=f"Updated Model using {finn.model_name}").send()
+#    await cl.Message(content=f"I am using the {finn.model_name} model now.", author="Chatbot").send()
     cl.user_session.set("finn", finn)
     cl.user_session.set("runnable", finn.runnable)
-        
+
+
+
 ################################################################################
 # Start chat
 @cl.on_chat_start
@@ -80,7 +74,7 @@ async def on_chat_start():
            id            = "model",
            label         = "OpenAI Model",
            items         = {m: m for m in OPENAI_MODELS},
-           initial_value ="gpt-3.5-turbo-1106",
+           initial_value = "gpt-3.5-turbo-1106",
        ),
        Switch(
            id            = "cache", 
@@ -105,10 +99,9 @@ async def on_chat_start():
            max           = 2048,
            step          = 64,
        ),
-       # Slider(id="top_p",label="Top P",initial=0.7,min=0,max=1,step=0.1),
     ]).send()
+    
     await setup_agent(settings)
-
 
 ################################################################################
 # Message handler
@@ -136,8 +129,11 @@ async def on_message(message: cl.Message):
     
     # send response
     response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
-    await msg.stream_token(response["output"])
-    await msg.send()
+#    await msg.stream_token(response["output"])
+#    await msg.send()
+
+    msg.content = response["output"]
+    await msg.update()
     
     # async with cl.Step(type="run", name="QA Assistant"):
     #     async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
@@ -151,6 +147,18 @@ async def on_message(message: cl.Message):
     #https://github.com/Chainlit/cookbook/blob/aa71a1808f0edfbb6d798df90ac2467636086506/openai-functions/app.py#L76
     # AND HERE FOR USE WITH TOOLS AND FILES!
     # https://github.com/Chainlit/cookbook/blob/aa71a1808f0edfbb6d798df90ac2467636086506/openai-assistant/app.py#L194
+
+
+################################################################################
+# Stop the current task
+@cl.on_stop
+def on_stop():
+    print("The user wants to stop the task!")
+#    runnable = cl.user_session.get("runnable")
+#    runnable.stop() # there is no stop method
+
+    
+
 
 ################################################################################
 # Process uploaded files

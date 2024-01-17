@@ -1,17 +1,18 @@
+# When asked about company news, you will also provide a sentiment using the Stock-News-Sentiment-Tool. 
 SYSTEM_PROMPT = '''
-You're a financal and mathematical adviser and analyst. You can provide insights into the financial status of companies and address inquiries related to stock prices and news. To ensure the accuracy of temporal information, you will access the current date using a tool and utilize it to retrieve the latest data. You have access to yahoo finance informations using the stock price tool and the stock information tool. You also can conduct web searches and refer to Wikipedia for comprehensive information. 
+You're the most seasoned financial analyst and investment advisor with expertise in stock market analysis and investment strategies. You are skilled in sifting through news, company announcements, and market sentiments. You combine various analytical insights to formulate strategic investment advice. To ensure the accuracy of temporal information, you will access the current date using a tool and utilize it to retrieve the latest data. You have access to yahoo finance data and company information using the appropiate tools. You also can conduct web searches and refer to Wikipedia for comprehensive information. You will ensure to include the sentiment analysis when providing news headlines.
 
 You have access to the following tools:
 
 {tools}
 
-Use a json blob to specify a tool by providing an action key (tool name) and an action_input key (tool input). Tool input can only bea SINGLE JSON STRING. 
+Use a json blob to specify a tool by providing an action key (tool name) and an action_input key (tool input). Tool input can only be a SINGLE JSON STRING. 
 
 Valid "action" values: "Final Answer" or {tool_names}
 
 Provide only ONE action per $JSON_BLOB, as shown:
 
-```
+```json
 {{
   "action": $TOOL_NAME,
   "action_input": $INPUT
@@ -36,12 +37,14 @@ Action:
   "action_input": "Final response to human"
 }}
 
+Format is Action: ```$JSON_BLOB``` then Observation
+
 Begin!
 
-Reminder to ALWAYS respond with a valid json blob of a single action. 
-Use tools if necessary. Respond directly if appropriate. 
+Reminder to ALWAYS respond with a valid json blob of a single action.
+Use tools if necessary. Respond directly if appropriate.
 Ensure to format monetary values with their respective currencies.
-Format is Action: ```$JSON_BLOB``` then Observation
+Print the final answer markdown formatted.
 '''
 
 HUMAN_PROMPT = '''
@@ -58,27 +61,39 @@ from langchain_community.llms import Ollama
 from langchain_community.chat_models import ChatOllama
 from langchain.agents.tools import Tool
 from langchain.agents import create_structured_chat_agent, AgentExecutor
-from langchain.chains import ConversationChain
+from langchain.chains import ConversationChain, LLMMathChain
 from langchain.memory import ConversationBufferMemory, ConversationSummaryBufferMemory
-from langchain.prompts import MessagesPlaceholder, ChatPromptTemplate#, HumanMessagePromptTemplate, 
+from langchain.prompts import MessagesPlaceholder, ChatPromptTemplate
 from langchain.agents import load_tools
 from tools.tools import *
+
+from langchain_experimental.tools import PythonREPLTool
+from tools.currency_converter import CurrencyConverterTool
+from tools.date_tool import DateTool
+from tools.calculator_tool import CalculatorTool
+from tools.stock_info_tool import StockInfoTool
+from tools.stock_price_tool import StockPriceTool
+from tools.stock_news_tool import StockNewsTool
+from tools.stock_news_sentiment_tool import StockNewsSentimentTool
+from tools.stock_dividend_tool import StockDividendTool
+#from tools.plotly_tool import PlotlyPythonAstREPLTool
 
 #chat_model = ChatOllama(model="mistral")
 #tool_model = Ollama(model="mistral", temperature=temperature)
 
 class Finn:
     openai_model = "gpt-3.5-turbo-1106"
-    base_tools   = ["human", "ddg-search", "wikipedia", "llm-math"]
+    base_tools   = ["human", "ddg-search", "wikipedia"] # "llm-math" # that's not working!
     finn_tools   = [
-        date_tool, 
-        stock_news_tool, 
-        stock_news_sentiment_tool,
-        stock_dividend_tool,
-        StockInfoTool(),
+        DateTool(), 
+        CalculatorTool(),
+        CurrencyConverterTool(), # seem to be offline
+        StockNewsTool(),
+        StockNewsSentimentTool,
         StockPriceTool(),
-        CurrencyConverterTool(),
-#        PythonREPLTool()
+        StockInfoTool(),
+        StockDividendTool(),
+#        PythonREPLTool(),
     ]
 
     def tool_llm(self, temperature=0.0):
@@ -98,6 +113,8 @@ class Finn:
         t = load_tools(self.base_tools, llm=self.tool_llm())
         t.extend(self.finn_tools)
         return t
+        
+    
 
 #BaseLLM
 # https://python.langchain.com/docs/integrations/llms/ollama
@@ -164,7 +181,7 @@ class AgentFactory:
             agent  = agent,
             tools  = self.tools,
             memory = self.memory,
-            stop   = ["Observe:", "Final Answer"], # TODO: Maybe with final answer
+            stop   = ["Observe:"], # , "Final Answer"TODO: Maybe with final answer
             verbose=True,
             intermediate_steps=True,
             handle_parsing_errors=True,

@@ -1,6 +1,9 @@
 python-dotenv
 pandas
 numpy
+matplotlib
+plotly
+tabulate
 chainlit==1.0.101
 langchain==0.1.0
 langchain-community
@@ -10,12 +13,13 @@ langchainhub
 transformers
 torch
 openai
-ollama==0.1.0
+#ollama==0.1.0
 #httpx>=0.25.2,<0.26.0
 yfinance
+moment
 forex-python==1.6
 wikipedia
 duckduckgo-search
 numexpr
 chromadb
-
+pymupdf

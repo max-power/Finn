@@ -34,6 +34,12 @@ async def setup_agent(settings):
 
 @cl.on_chat_start
 async def on_chat_start():
+    await cl.Avatar(name="Info", url="/public/logo_light.png").send()
+#    await cl.Avatar(name="You", url="/public/...").send()
+
+    # send a welcome message, maybe with some actions (try adding some buttons)
+    # await cl.Message(content="But first: ", elements=[cl.Text(content='HI'))], author="Info").send()
+
     settings = await cl.ChatSettings(
            [
                Select(
@@ -51,6 +57,22 @@ async def on_chat_start():
                    step=0.1,
                    description="The temperature of the model. Increasing the temperature will make the model answer more creatively. (Default: 0.8)",
                ),
+               Slider(
+                   id="top_p",
+                   label="Top P",
+                   initial=0.7,
+                   min=0,
+                   max=1,
+                   step=0.1,
+               ),
+               Slider(
+                   id="max_token",
+                   label="Max output tokens",
+                   initial=512,
+                   min=0,
+                   max=1024,
+                   step=64,
+               ),
            ]
        ).send()
     value = settings["Model"]
@@ -66,13 +88,28 @@ async def on_message(message: cl.Message):
         stream_final_answer=True,
         answer_prefix_tokens=["Final", "Answer"]
     )])
-
+    # setup response
     msg = cl.Message(content="")
     await msg.send()
-    
+
+    # check incoming message for attached files
+    if message.elements:
+        files = [file for file in message.elements]
+        file_names = ", ".join([file.name for file in files])
+        msg.elements.append(
+            cl.Text(name="Files", content=file_names, display="inline")
+        )
+
+    # send response
     response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
     await msg.stream_token(response["output"])
     await msg.send()
+    
+    # async with cl.Step(type="run", name="QA Assistant"):
+    #     async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
+    #         await msg.stream_token(chunk['output'])
+
+
 
 @app.get("/hello")
 def hello(request: Request):

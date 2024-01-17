@@ -10,6 +10,17 @@
 # https://github.com/Chainlit/cookbook/blob/main/chroma-qa-chat/app.py
 
 
+# https://python.langchain.com/docs/integrations/document_loaders/news
+# from langchain_community.document_loaders import NewsURLLoader
+# from langchain_community.document_loaders import DataFrameLoader
+# loader = DataFrameLoader(df, page_content_column="Team")
+# from langchain_community.document_loaders import WebBaseLoader
+# loader = WebBaseLoader("https://www.espn.com/")
+# from langchain_community.document_loaders import PyPDFLoader
+# loader_pdf = PyPDFLoader("../MachineLearning-Lecture01.pdf")
+# from langchain_community.document_loaders.merge import MergedDataLoader
+# loader_all = MergedDataLoader(loaders=[loader_web, loader_pdf])
+
 from dotenv import find_dotenv, load_dotenv
 load_dotenv(find_dotenv())
 

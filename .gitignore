@@ -1,7 +1,7 @@
 .DS_STORE
 __bot_old
 .langchain.db
-
+.files/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

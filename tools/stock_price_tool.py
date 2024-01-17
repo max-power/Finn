@@ -28,24 +28,24 @@ class StockPriceSchema(TickerSymbolSchema):
     )
     interval: str = Field(
         title="Interval", 
-        description="Data Frequency.", 
+        description=" Valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo. Intraday data cannot extend last 60 days", 
         default="1d", 
         examples=['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo']
     )
     period: Optional[str] = Field(
         title="Period", 
-        description="Historical data period (optional). Don't mix with start_date, end_date!",
+        description="Historical data period (optional). Either Use period parameter or use start and end. Valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max .",
         default="1mo",
         examples=['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'],
     )
     start_date: Optional[str] = Field(
         title="Start Date",
-        description="Start date in 'YYYY-MM-DD' format (optional). Don't mix with period!",
+        description="Start date string (YYYY-MM-DD) (optional). Don't mix with period!",
         examples=['2024-01-10'],
     )
     end_date: Optional[str] = Field(
         title="End Date",
-        description="End date in 'YYYY-MM-DD' format (optional). end_date MUST BE GREATER THAN start_date. Don't mix with period!",
+        description="End date string (YYYY-MM-DD) (optional). end_date MUST BE GREATER THAN start_date. Don't mix with period!",
         examples=['2024-01-11'],
     )
 
@@ -61,18 +61,22 @@ class StockPriceTool(BaseTool):
         
         from datetime import datetime, timedelta
         def validate_dates(start_str, end_str):
+            print("VALIDATE DATES #########################################################################")
+            print("Start", start_str)
+            print("End  ", end_str)
             # Convert string inputs to datetime objects
             start_date = datetime.strptime(start_str, '%Y-%m-%d')
             end_date   = datetime.strptime(end_str,   '%Y-%m-%d')
 
             # Ensure end_date is at least 1 day after start_date
-            if end_date <= start_date:
+            if end_date == start_date:
                 end_date = start_date + timedelta(days=1)
 
-            return start_date, end_date
+            return start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d')
 
         if start_date and end_date:
             start_date, end_date = validate_dates(start_date, end_date)
+            print(start_date, end_date)
             data = ticker.history(interval=interval, start=start_date, end=end_date)
         else:
             data = ticker.history(interval=interval, period=period)
@@ -87,3 +91,11 @@ class StockPriceTool(BaseTool):
 #        return {"price": data[price_type], "currency": ticker.info["currency"]}
         return data[price_type].to_json(date_format='iso')
 
+
+
+if __name__ == "__main__":
+    StockPriceTool().invoke({
+        'symbol': 'AAPL',
+        'start_date': '2024-01-10',
+        'end_date': '2024-01-10',
+    })

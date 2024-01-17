@@ -1,6 +1,5 @@
-# When asked about company news, you will also provide a sentiment using the Stock-News-Sentiment-Tool. 
 SYSTEM_PROMPT = '''
-You're the most seasoned financial analyst and investment advisor with expertise in stock market analysis and investment strategies. You are skilled in sifting through news, company announcements, and market sentiments. You combine various analytical insights to formulate strategic investment advice. To ensure the accuracy of information, you will access the current date using the DateTool and utilize it to retrieve the latest data. You have access to yahoo finance data and company information using the appropiate tools. You also can conduct web searches and refer to Wikipedia for comprehensive information. You will ensure to include the sentiment analysis and a link when providing news headlines. When asked for investment advise you consider company information, stock prices, news and other sources to present a comprehensive review.
+You're the most seasoned financial analyst and investment advisor with expertise in stock market analysis and investment strategies. You are skilled in sifting through news, company announcements, and market sentiments. You combine various analytical insights to formulate strategic investment advice. To ensure the accuracy of information, you will access the current date using the DateTool to utilize it to retrieve the latest stock price data. You have access to yahoo finance data and company information using the appropiate tools. You also can conduct web searches and refer to Wikipedia for comprehensive information. You will ensure to include the sentiment analysis and when providing news headlines. When asked for investment advise you consider company information, stock prices, news and other sources to present a comprehensive review relative to the current date.
 
 You have access to the following tools:
 
@@ -44,7 +43,7 @@ Begin!
 Reminder to ALWAYS respond with a valid json blob of a single action.
 Use tools if necessary. Respond directly if appropriate.
 Ensure to format monetary values with their respective currencies.
-Print the final answer markdown formatted. Check the date!
+Print the final answer markdown formatted. 
 '''
 
 HUMAN_PROMPT = '''
@@ -88,103 +87,89 @@ from tools.stock_dividend_tool import StockDividendTool
 #tool_model = Ollama(model="mistral", temperature=temperature)
 
 class Finn:
-    openai_model = "gpt-3.5-turbo-1106"
-    base_tools   = ["human", "ddg-search", "wikipedia"] # "llm-math" # that's not working!
-    finn_tools   = [
-        DateTool(), 
-        CalculatorTool(),
-        CurrencyConverterTool(), # seem to be offline
-        StockNewsTool(),
-        StockNewsSentimentTool,
-        StockPriceTool(),
-        StockInfoTool(),
-        StockDividendTool(),
-#        PythonREPLTool(),
-    ]
+    def __init__(self, model_name="gpt-3.5-turbo-1106", temperature=0, max_tokens=1024, cache=True):
+        self.model_name  = model_name
+        self.temperature = temperature
+        self.max_tokens  = max_tokens
+        self.cache       = cache
+        self.base_tools  = [
+            "ddg-search", 
+            "wikipedia",
+            # "human", # i don't know how to interact with the user through chainlit
+            # "llm-math", # that's not working!
+        ] 
+        self.finn_tools  = [
+            DateTool(), 
+            CalculatorTool(),
+            CurrencyConverterTool(),
+            StockNewsTool(),
+            StockNewsSentimentTool,
+            StockPriceTool(),
+            StockInfoTool(),
+            StockDividendTool(),
+            #        PythonREPLTool(),
+        ]
+        
+        # TODO: possible remove!
+        self.optional_params = {
+          "top_p": 0.8,
+          "frequency_penalty": 0,
+          "presence_penalty": 0
+        }
 
-    def tool_llm(self, temperature=0.0):
-        #return Ollama(model="mistral", temperature=temperature, cache=True)
-        return OpenAI(model=self.openai_model, temperature=temperature, cache=True)
+    def base_llm(self, temperature=0.0):
+        #return Ollama(model="mistral", temperature=self.temperature, cache=True)
+        return OpenAI(
+            model        = self.model_name,
+            temperature  = self.temperature,
+            cache        = self.cache,
+#            model_kwargs = self.optional_params
+        )
     
     def chat_llm(self, temperature=0.0):
-        #return ChatOllama(model="mistral", temperature=temperature, cache=True)
-        return ChatOpenAI(model=self.openai_model, temperature=temperature, cache=True)
+        #return ChatOllama(model="mistral", temperature=self.temperature, cache=True)
+        return ChatOpenAI(
+            model        = self.model_name,
+            temperature  = self.temperature,
+            cache        = self.cache,
+#            top_p        = 0.8,
+#            model_kwargs = self.optional_params
+        )
 
-    @property
-    def agent(self):
-        return AgentFactory(chat_llm=self.chat_llm(), tools=self.tools).agent()
-    
     @property
     def tools(self):
-        t = load_tools(self.base_tools, llm=self.tool_llm())
-        t.extend(self.finn_tools)
-        return t
-        
-    
-
-#BaseLLM
-# https://python.langchain.com/docs/integrations/llms/ollama
-    # model = ChatOllama(
-    #     cache=True,
-    #     callback_manager=callback_manager,
-    #     model=config["model"],
-    #     repeat_penalty=config["settings"]["repeat_penalty"],
-    #     temperature=config["settings"]["temperature"],
-    #     top_k=config["settings"]["top_k"],
-    #     top_p=config["settings"]["top_p"],
-    # )!
-
-from langchain_core.language_models.chat_models import BaseChatModel
-# https://github.com/DevGauge/LangChainAgentFactory
-class AgentFactory:
-    def __init__(self, chat_llm: BaseChatModel, tools: list[Tool] = [], memory = None, max_tokens=2000):
-        """generates agents for the user to interact with the LLM.
-
-        Args:
-            tools (list[Tool], optional): Tools/StructuredTools the agent will have access to. Tools cannot be passed in to an agent after calling `agent` 
-            to create an agent with different tooling, change the properties and call `agent` again. Defaults to [].
-
-            openai_model_name (str, optional): the openai chat model to use. Defaults to 'gpt-4'.
-
-            temperature (float, optional): how "creative" or determinative the model is. Defaults to 0.0.
-
-            memory (_type_, optional): type of memory the agent will have. Defaults to ConversationSummaryBufferMemory which holds a summary of
-            the conversation up to `max_tokens`.
-
-            max_tokens (int, optional): The maximum number of tokens before the ConversationBufferMemory resets. Defaults to 2000.
-        """
-        self.llm    = chat_llm
-        self.memory = memory or ConversationBufferMemory( # ConversationSummaryBufferMemory
-                        llm=self.llm,
-                        memory_key="chat_history",
-                        return_intermediate_steps=True,
-                        return_messages=True,
-                        max_token_limit=max_tokens)
-        self.tools  = tools
-        #self.prompt = hub.pull("hwchase17/structured-chat-agent")
-        self.prompt = ChatPromptTemplate.from_messages([
-                ("system", SYSTEM_PROMPT),
-                MessagesPlaceholder("chat_history", optional=True),
-                ("human", HUMAN_PROMPT),
+         all_tools = load_tools(self.base_tools, llm=self.base_llm())
+         all_tools.extend(self.finn_tools)
+         return all_tools
+         
+    @property
+    def prompt(self):
+        #prompt = hub.pull("hwchase17/structured-chat-agent")
+        return ChatPromptTemplate.from_messages([
+            ("system", SYSTEM_PROMPT),
+            MessagesPlaceholder("chat_history", optional=True),
+            ("human", HUMAN_PROMPT),
         ])
 
-
-    def agent(self, verbose=True):
-        """generate an agent given self.tools, self.llm, self.memory, and agent_type
-
-        Args:
-            agent_type (_type_, optional): The type of agent that will be generated. 
-            Defaults to AgentType.OPENAI_MULTI_FUNCTIONS to allow for multi-parameter functions.
-
-            verbose (bool, optional): Will console output be verbose? Defaults to True.
-
-        Returns:
-            Agent: A chatbot with access to functions/tools and a memory.
-        """
+    @property
+    def memory(self):
+        # ConversationSummaryBufferMemory?
+        return ConversationBufferMemory( 
+            llm=self.chat_llm(),
+            memory_key="chat_history",
+            return_intermediate_steps=True,
+            return_messages=True,
+            max_token_limit=self.max_tokens)
+    
+    @property
+    def agent(self):
+        return create_structured_chat_agent(self.chat_llm(), self.tools, self.prompt)
+    
+    @property
+    def executor(self):
         chat_history = MessagesPlaceholder(variable_name="chat_history")
-        agent        = create_structured_chat_agent(self.llm, self.tools, self.prompt)
-        agent_chain  = AgentExecutor.from_agent_and_tools(
-            agent  = agent,
+        return AgentExecutor.from_agent_and_tools(
+            agent  = self.agent,
             tools  = self.tools,
             memory = self.memory,
             stop   = ["Observe:"], # , "Final Answer"TODO: Maybe with final answer
@@ -196,5 +181,18 @@ class AgentFactory:
                 "input_variables": ["input", "agent_scratchpad", "chat_history"]
             })
 
-        return agent_chain
+    @property
+    def runnable(self):
+        return self.executor
 
+# BaseLLM
+# https://python.langchain.com/docs/integrations/llms/ollama
+    # model = ChatOllama(
+    #     cache=True,
+    #     callback_manager=callback_manager,
+    #     model=config["model"],
+    #     repeat_penalty=config["settings"]["repeat_penalty"],
+    #     temperature=config["settings"]["temperature"],
+    #     top_k=config["settings"]["top_k"],
+    #     top_p=config["settings"]["top_p"],
+    # )!

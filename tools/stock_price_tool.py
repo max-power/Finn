@@ -51,7 +51,7 @@ class StockPriceSchema(TickerSymbolSchema):
 
 class StockPriceTool(BaseTool):
     name = "StockPriceTool"
-    description = "Fetch stock price data using yFinance. Return: pd.DataFrame: Historical stock data. Input end_date MUST NOT EQUAL start_date."
+    description = "Fetch stock price data using yFinance. Returns: Historical stock data. Input end_date MUST NOT EQUAL start_date."
     args_schema = StockPriceSchema
     handle_tool_error = handle_tool_error
     #    return_direct = True
@@ -85,5 +85,5 @@ class StockPriceTool(BaseTool):
         ####################################################
         
 #        return {"price": data[price_type], "currency": ticker.info["currency"]}
-        return data[price_type]
+        return data[price_type].to_json(date_format='iso')
 

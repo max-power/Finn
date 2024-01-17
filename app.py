@@ -39,6 +39,7 @@ async def on_chat_start():
 
     # send a welcome message, maybe with some actions (try adding some buttons)
     # await cl.Message(content="But first: ", elements=[cl.Text(content='HI'))], author="Info").send()
+    
 
     settings = await cl.ChatSettings(
            [
@@ -88,17 +89,22 @@ async def on_message(message: cl.Message):
         stream_final_answer=True,
         answer_prefix_tokens=["Final", "Answer"]
     )])
+    
     # setup response
     msg = cl.Message(content="")
     await msg.send()
 
     # check incoming message for attached files
     if message.elements:
-        files = [file for file in message.elements]
+        files      = [file for file in message.elements]
         file_names = ", ".join([file.name for file in files])
         msg.elements.append(
             cl.Text(name="Files", content=file_names, display="inline")
         )
+        # msg.elements.append(
+        #     cl.Text(name="Files", path="_files_for_testing/hamlet.txt", display="inline")
+        # )
+        
 
     # send response
     response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
@@ -109,7 +115,7 @@ async def on_message(message: cl.Message):
     #     async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
     #         await msg.stream_token(chunk['output'])
 
-
+    #await msg.send()
 
 @app.get("/hello")
 def hello(request: Request):

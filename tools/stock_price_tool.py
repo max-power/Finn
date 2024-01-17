@@ -40,26 +40,39 @@ class StockPriceSchema(TickerSymbolSchema):
     )
     start_date: Optional[str] = Field(
         title="Start Date",
-        description="Start date in 'YYYY-MM-DD' format (optional).",
+        description="Start date in 'YYYY-MM-DD' format (optional). Don't mix with period!",
         examples=['2024-01-10'],
     )
     end_date: Optional[str] = Field(
         title="End Date",
-        description="End date in 'YYYY-MM-DD' format (optional). end_date MUST NOT EQUAL start_date",
+        description="End date in 'YYYY-MM-DD' format (optional). end_date MUST BE GREATER THAN start_date. Don't mix with period!",
         examples=['2024-01-11'],
     )
 
 class StockPriceTool(BaseTool):
     name = "StockPriceTool"
-    description = "Fetch stock price data using yFinance. Return: pd.DataFrame: Historical stock data. "
+    description = "Fetch stock price data using yFinance. Return: pd.DataFrame: Historical stock data. Input end_date MUST NOT EQUAL start_date."
     args_schema = StockPriceSchema
     handle_tool_error = handle_tool_error
     #    return_direct = True
     
     def _run(self, symbol: str, price_type: str = 'Close', interval: str = '1d', period: str = '1mo', start_date: str = None, end_date: str = None):
         ticker = yf.Ticker(symbol)
+        
+        from datetime import datetime, timedelta
+        def validate_dates(start_str, end_str):
+            # Convert string inputs to datetime objects
+            start_date = datetime.strptime(start_str, '%Y-%m-%d')
+            end_date   = datetime.strptime(end_str,   '%Y-%m-%d')
+
+            # Ensure end_date is at least 1 day after start_date
+            if end_date <= start_date:
+                end_date = start_date + timedelta(days=1)
+
+            return start_date, end_date
 
         if start_date and end_date:
+            start_date, end_date = validate_dates(start_date, end_date)
             data = ticker.history(interval=interval, start=start_date, end=end_date)
         else:
             data = ticker.history(interval=interval, period=period)

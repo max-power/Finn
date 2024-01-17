@@ -4,6 +4,7 @@ from tools.tools import handle_tool_error
 from tools.stock_price_tool import TickerSymbolSchema
 
 import yfinance as yf
+import json
 
 class StockNewsTool(BaseTool):
     name        = "StockNewsTool"
@@ -12,4 +13,4 @@ class StockNewsTool(BaseTool):
     handle_tool_error=handle_tool_error
     
     def _run(self, symbol: str):
-        return yf.Ticker(symbol).news # .to_json(date_format='iso'),
+        return json.dumps(yf.Ticker(symbol).news) # .to_json(date_format='iso'),

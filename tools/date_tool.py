@@ -21,7 +21,7 @@ class DateToolSchema(BaseModel):
     )
 
 class DateTool(BaseTool):
-    name = "Moment"
+    name = "DateTool"
     description = "Useful for when you are need to find the date and or time. Remember JSON input keys 'input' and 'format', both optional."
     args_schema = DateToolSchema
     handle_tool_error=handle_tool_error

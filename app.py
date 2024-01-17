@@ -91,11 +91,11 @@ async def on_chat_start():
        Slider(
            id            = "temperature",
            label         = "Temperature",
-           description.  ="The temperature of the model. Increasing the temperature will make the model answer more creatively. (Default: 0.0)",
+           descriptio    = "The temperature of the model. Increasing the temperature will make the model answer more creatively. (Default: 0.0)",
            min           = 0,
            max           = 2,
            step          = 0.1,
-           initial.      = 0.0,
+           initial       = 0.0,
        ),
        Slider(
            id            = "max_token",

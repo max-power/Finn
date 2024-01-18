@@ -82,13 +82,13 @@ class Finn:
          
     @property
     def prompt(self):
-        return hub.pull("hwchase17/structured-chat-agent")
-        # return ChatPromptTemplate.from_messages([
-        #     ("system", SYSTEM_PROMPT),
-        #     ("system", f"Today is {datetime.now().strftime('%A, %B %d, %Y %H:%M:%S')}."),
-        #     MessagesPlaceholder("chat_history", optional=True),
-        #     ("human", HUMAN_PROMPT),
-        # ])
+        #return hub.pull("hwchase17/structured-chat-agent")
+        return ChatPromptTemplate.from_messages([
+            ("system", SYSTEM_PROMPT),
+            ("system", f"Today is {datetime.now().strftime('%A, %B %d, %Y %H:%M:%S')}."),
+            MessagesPlaceholder("chat_history", optional=True),
+            ("human", HUMAN_PROMPT),
+        ])
 
     @property
     def memory(self):

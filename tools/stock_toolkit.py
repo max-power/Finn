@@ -2,7 +2,7 @@ from typing import List, Optional
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_community.tools import BaseTool
 from langchain_community.agent_toolkits.base import BaseToolkit
-from langchain_core.tools import Tool
+from langchain_core.tools import Tool, StructuredTool
 # async
 from langchain.callbacks.manager import AsyncCallbackManagerForToolRun, CallbackManagerForToolRun
 from langchain_core.runnables.config import run_in_executor
@@ -15,7 +15,7 @@ import yfinance as yf
 import json
 
 # Base Schema for all StockTool
-class TickerSymbolSchema(BaseModel):
+class StockSymbolSchema(BaseModel):
     """Input for Stock Tools."""
     symbol: str = Field(
         title="Symbol", 
@@ -26,7 +26,7 @@ class TickerSymbolSchema(BaseModel):
 # Base StockTool for inheritance.
 class StockBaseTool(BaseTool):
     """Base for StockTools."""
-    args_schema = TickerSymbolSchema
+    args_schema = StockSymbolSchema
     handle_tool_error = handle_tool_error
 
     def _run(
@@ -45,36 +45,36 @@ class StockBaseTool(BaseTool):
 
 # TOOLS ###################################################
  
-StockRecommendationTool = Tool(
+StockRecommendationTool = StructuredTool(
     func        = lambda str: yf.Ticker(str).recommendations,
     name        = "StockRecommendationTool",
     description = "Useful for when you need purchase recommendations for a stock.",
-    args_schema = TickerSymbolSchema,
+    args_schema = StockSymbolSchema,
     handle_tool_error=handle_tool_error,
     ##coroutine=
 )
 
-StockCashFlowTool = Tool(
+StockCashFlowTool = StructuredTool(
     func        = lambda str: yf.Ticker(str).cash_flow,
     name        = "StockCashFlowTool",
     description = "Useful for financial analysis when you need to get a cash flow report for a company",
-    args_schema = TickerSymbolSchema,
+    args_schema = StockSymbolSchema,
     handle_tool_error=handle_tool_error,
 )
 
-StockIncomeStatementTool = Tool(
+StockIncomeStatementTool = StructuredTool(
     func        = lambda str: yf.Ticker(str).income_stmt,
     name        = "StockIncomeStatementTool",
     description = "Useful for financial analysis when you need to get the income statement report for a company",
-    args_schema = TickerSymbolSchema,
+    args_schema = StockSymbolSchema,
     handle_tool_error=handle_tool_error,
 )
 
-StockBalanceSheetTool = Tool(
+StockBalanceSheetTool = StructuredTool(
     func        = lambda str: yf.Ticker(str).balance_sheet,
     name        = "StockBalanceSheetTool",
     description = "Useful for financial analysis when you need to get the balance sheet for a company",
-    args_schema = TickerSymbolSchema,
+    args_schema = StockSymbolSchema,
     handle_tool_error=handle_tool_error,
 )
 
@@ -92,7 +92,10 @@ class StockDividendTool(StockBaseTool):
 class StockNewsTool(StockBaseTool):
     name        = "StockNewsTool"
     description = "Useful for when you are need news about a company."
-    
+    args_schema = StockSymbolSchema
+    handle_tool_error = handle_tool_error
+
+
     def _run(self, symbol: str, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
         return json.dumps(yf.Ticker(symbol).news) # .to_json(date_format='iso')
 
@@ -124,21 +127,19 @@ class StockNewsSentimentTool(BaseTool):
 
 
 # Stock Info Tool #############################################
-class StockInfoSchema(TickerSymbolSchema):
+class StockInfoSchema(StockSymbolSchema):
     """Input for StockInfoTool."""
     key: str = Field(
         description = "Which information to look for. Required! Example: 'longBusinessSummary'. 'key' MUST be a SINGLE JSON STRING.",
-        default     = "currentPrice",
-        examples    = ["shortName", "ebitda", "lastDividendDate", "industry", "fullTimeEmployees", "dayLow"],
+        examples    = ["currentPrice", "shortName", "ebitda", "lastDividendDate", "industry", "fullTimeEmployees", "dayLow"],
     )
 
 class StockInfoTool(StockBaseTool):
     args_schema = StockInfoSchema
     name        = "StockInfoTool"
     description = """Useful for when you need to find out generel informations about a stock or company. 
-        It requires a ticker symbol as first parameter. You MUST obtain a valid ticker symbol first.
-        VALID 'key' paramter MUST BE ONE of the following:
-        [address1 (street address), city, state, zip, country, phone, website, industry, 
+        It REQUIRES a ticker 'symbol' AND 'key' which MUST be one of the following:
+        [address1, city, state, zip, country, phone, website, industry, 
         industryKey, industryDisp, sector, sectorKey, sectorDisp, longBusinessSummary, 
         fullTimeEmployees, companyOfficers, auditRisk, boardRisk, compensationRisk, 
         shareHolderRightsRisk, overallRisk, governanceEpochDate, compensationAsOfEpochDate,
@@ -163,20 +164,21 @@ class StockInfoTool(StockBaseTool):
         returnOnEquity, grossProfits, freeCashflow, operatingCashflow, earningsGrowth, revenueGrowth, 
         grossMargins, ebitdaMargins, operatingMargins, financialCurrency, trailingPegRatio]
         
-        It includes the latest stock price as currentPrice. For older prices use the StockPriceTool.
+        It includes the latest stock price with 'currentPrice' as 'key'. For older prices use the StockPriceTool.
     """
-
-    def _run(self, symbol: str, key: str = 'currentPrice', run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
+    handle_tool_error = handle_tool_error
+    
+    def _run(self, symbol: str, key: str, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
         return yf.Ticker(symbol).info[key]
         
-    async def _arun(self, symbol: str, key: str = 'currentPrice', run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> str:
+    async def _arun(self, symbol: str, key: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> str:
         return await run_in_executor(None, self._run, symbol, key, run_manager)
 
 
 # Stock Price Tool #############################################
 from langchain.output_parsers import PandasDataFrameOutputParser
 
-class StockPriceSchema(TickerSymbolSchema):
+class StockPriceSchema(StockSymbolSchema):
     """Input for Stock Price Tools."""
     price_type: Optional[str] = Field(
         title="Price type",
@@ -208,8 +210,10 @@ class StockPriceSchema(TickerSymbolSchema):
     )
 
 class StockPriceTool(StockBaseTool):
-    name = "StockPriceTool"
+    name        = "StockPriceTool"
     description = "Fetch stock price data using yFinance. Returns: Historical stock data. Input end_date MUST NOT EQUAL start_date."
+    args_schema = StockPriceSchema
+    handle_tool_error = handle_tool_error
     
     def _run(
         self, 

@@ -30,7 +30,7 @@ class StockBaseTool(BaseTool):
     handle_tool_error = handle_tool_error
 
     def _run(
-        self, symbol: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None
+        self, symbol: str, run_manager: Optional[CallbackManagerForToolRun] = None
     ) -> str:
         """Use the tool"""
         raise NotImplementedError(f"Function not implemented in {self.name}")
@@ -84,7 +84,7 @@ class StockDividendTool(StockBaseTool):
     name        = "StockDividendTool"
     description = "Useful for when you need to find dividends paid by a company. It returns a pandas dataframe which you can further analyse. It requires a ticker symbol as parameter. You MUST obtain a valid ticker symbol first."
 
-    def _run(self, symbol: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None):
+    def _run(self, symbol: str, run_manager: Optional[CallbackManagerForToolRun] = None):
         return yf.Ticker(symbol).dividends.to_json(date_format='iso')
 
 
@@ -93,7 +93,7 @@ class StockNewsTool(StockBaseTool):
     name        = "StockNewsTool"
     description = "Useful for when you are need news about a company."
     
-    def _run(self, symbol: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> str:
+    def _run(self, symbol: str, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
         return json.dumps(yf.Ticker(symbol).news) # .to_json(date_format='iso')
 
 
@@ -109,7 +109,7 @@ class StockNewsSentimentTool(BaseTool):
     args_schema = StockNewsSentimentSchema
     handle_tool_error=handle_tool_error
 
-    def _run(self, text: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None):
+    def _run(self, text: str, run_manager: Optional[CallbackManagerForToolRun] = None):
         return NewsClassifier(model="yiyanghkust/finbert-tone").sentiment_for(text)
         
     async def _arun(self, text: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None):
@@ -166,8 +166,11 @@ class StockInfoTool(StockBaseTool):
         It includes the latest stock price as currentPrice. For older prices use the StockPriceTool.
     """
 
-    def _run(self, symbol: str, key: str = 'currentPrice', run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> str:
+    def _run(self, symbol: str, key: str = 'currentPrice', run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
         return yf.Ticker(symbol).info[key]
+        
+    async def _arun(self, symbol: str, key: str = 'currentPrice', run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> str:
+        return await run_in_executor(None, self._run, symbol, key, run_manager)
 
 
 # Stock Price Tool #############################################
@@ -216,7 +219,7 @@ class StockPriceTool(StockBaseTool):
         period: str = '1mo', 
         start_date: str = None, 
         end_date: str = None,
-        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+        run_manager: Optional[CallbackManagerForToolRun] = None,
     ) -> str:
         ticker = yf.Ticker(symbol)
         

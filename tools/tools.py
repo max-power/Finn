@@ -15,45 +15,6 @@ def handle_tool_error(error: ToolException) -> str:
         + "Please try another tool.")
 
 
-
-from langchain_core.tools import Tool
-from tools.stock_price_tool import TickerSymbolSchema
-import yfinance as yf
-
-StockRecommendationTool = Tool(
-    func        = lambda str: yf.Ticker(str).recommendations,
-    name        = "StockRecommendationTool",
-    description = "Useful for when you need purchase recommendations for a stock.",
-    args_schema = TickerSymbolSchema,
-    handle_tool_error=handle_tool_error,
-)
-
-StockCashFlowTool = Tool(
-    func        = lambda str: yf.Ticker(str).cash_flow,
-    name        = "StockCashFlowTool",
-    description = "Useful for financial analysis when you need to get a cash flow report for a company",
-    args_schema = TickerSymbolSchema,
-    handle_tool_error=handle_tool_error,
-)
-
-StockIncomeStatementTool = Tool(
-    func        = lambda str: yf.Ticker(str).income_stmt,
-    name        = "StockIncomeStatementTool",
-    description = "Useful for financial analysis when you need to get the income statement report for a company",
-    args_schema = TickerSymbolSchema,
-    handle_tool_error=handle_tool_error,
-)
-
-StockBalanceSheetTool = Tool(
-    func        = lambda str: yf.Ticker(str).balance_sheet,
-    name        = "StockBalanceSheetTool",
-    description = "Useful for financial analysis when you need to get the balance sheet for a company",
-    args_schema = TickerSymbolSchema,
-    handle_tool_error=handle_tool_error,
-)
-
-
-        
 # Junkyard ##########################################################################
 
 # StockPlotTool = Tool.from_function(

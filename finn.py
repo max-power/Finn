@@ -17,18 +17,13 @@ from langchain_experimental.tools import PythonREPLTool
 from tools.currency_converter import CurrencyConverterTool
 from tools.date_tool import DateTool
 from tools.calculator_tool import CalculatorTool
-from tools.stock_info_tool import StockInfoTool
-from tools.stock_price_tool import StockPriceTool
-from tools.stock_news_tool import StockNewsTool
-from tools.stock_news_sentiment_tool import StockNewsSentimentTool
-from tools.stock_dividend_tool import StockDividendTool
-from tools.tools import StockBalanceSheetTool, StockIncomeStatementTool, StockCashFlowTool, StockRecommendationTool
+from tools.stock_toolkit import StockToolkit
 #from tools.plotly_tool import PlotlyPythonAstREPLTool
 
 #chat_model = ChatOllama(model="mistral")
 #tool_model = Ollama(model="mistral", temperature=temperature)
 
-
+from datetime import datetime
 
 from prompts.finn_prompt import *
 
@@ -47,16 +42,7 @@ class Finn:
         self.finn_tools  = [
             DateTool(), 
             CalculatorTool(),
-            CurrencyConverterTool(),
-            StockNewsTool(),
-            StockNewsSentimentTool(),
-            StockPriceTool(),
-            StockInfoTool(),
-            StockDividendTool(),
-            StockBalanceSheetTool,
-            StockIncomeStatementTool,
-            StockCashFlowTool,
-            StockRecommendationTool,
+            CurrencyConverterTool()
             #        PythonREPLTool(),
         ]
         
@@ -67,7 +53,8 @@ class Finn:
           "presence_penalty": 0
         }
 
-    def base_llm(self, temperature=0.0):
+    @property
+    def base_llm(self):
         #return Ollama(model="mistral", temperature=self.temperature, cache=True)
         return OpenAI(
             model        = self.model_name,
@@ -75,8 +62,8 @@ class Finn:
             cache        = self.cache,
 #            model_kwargs = self.optional_params
         )
-    
-    def chat_llm(self, temperature=0.0):
+    @property
+    def chat_llm(self):
         #return ChatOllama(model="mistral", temperature=self.temperature, cache=True)
         return ChatOpenAI(
             model        = self.model_name,
@@ -88,38 +75,35 @@ class Finn:
 
     @property
     def tools(self):
-         all_tools = load_tools(self.base_tools, llm=self.base_llm())
+         all_tools = load_tools(self.base_tools, llm=self.base_llm)
          all_tools.extend(self.finn_tools)
+         all_tools.extend(StockToolkit().get_tools())
          return all_tools
          
     @property
     def prompt(self):
-        #prompt = hub.pull("hwchase17/structured-chat-agent")
-        return ChatPromptTemplate.from_messages([
-            ("system", SYSTEM_PROMPT),
-            MessagesPlaceholder("chat_history", optional=True),
-            ("human", HUMAN_PROMPT),
-        ])
-        
-    def formatted_prompt(self):
-        self.prompt.format({
-            'tools': self.tools,
-            'tools_names': [t.name for t in self.tools]
-        })
+        return hub.pull("hwchase17/structured-chat-agent")
+        # return ChatPromptTemplate.from_messages([
+        #     ("system", SYSTEM_PROMPT),
+        #     ("system", f"Today is {datetime.now().strftime('%A, %B %d, %Y %H:%M:%S')}."),
+        #     MessagesPlaceholder("chat_history", optional=True),
+        #     ("human", HUMAN_PROMPT),
+        # ])
 
     @property
     def memory(self):
-        # ConversationSummaryBufferMemory?
-        return ConversationBufferMemory( 
-            llm=self.chat_llm(),
-            memory_key="chat_history",
-            return_intermediate_steps=True,
-            return_messages=True,
-            max_token_limit=self.max_tokens)
+        # ConversationBufferMemory
+        return ConversationSummaryBufferMemory( 
+            llm             = self.chat_llm,
+            memory_key      = "chat_history",
+            max_token_limit = self.max_tokens,
+            return_messages = True,
+            return_intermediate_steps = False,
+        )
     
     @property
     def agent(self):
-        return create_structured_chat_agent(self.chat_llm(), self.tools, self.prompt)
+        return create_structured_chat_agent(self.chat_llm, self.tools, self.prompt)
     
     @property
     def executor(self):
@@ -128,13 +112,16 @@ class Finn:
             agent  = self.agent,
             tools  = self.tools,
             memory = self.memory,
-            stop   = ["Observe:", "```"], # , "Final Answer"TODO: Maybe with final answer
-            verbose=True,
-            intermediate_steps=True,
-            handle_parsing_errors=True,
+            max_iterations        = 10,
+            max_execution_time    = 30, # seconds
+            verbose               = True,
+            intermediate_steps    = True,
+            handle_parsing_errors = True,
+#            return_only_outputs   = True,
+#            include_run_info      = True,
             agent_kwargs = {
-                "memory_prompts": [chat_history],
-                "input_variables": ["input", "agent_scratchpad", "chat_history"]
+                "memory_prompts":  [chat_history],
+                "input_variables": ["input", "agent_scratchpad", "chat_history"],
             })
 
     @property

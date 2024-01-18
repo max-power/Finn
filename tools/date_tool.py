@@ -14,8 +14,7 @@ class DateToolSchema(BaseModel):
     """Input for DateTool."""
     input: str = Field(
         title="Datetime string",
-        description="Input is any date or temporal string. For the current date use: 'now'", 
-        default="now",
+        description="Input is any date or temporal string. For the current date use: 'now'",
         examples=["December 18, 2012", "2012-12-18", 1355875153626, "now", "2 days ago", "in 10 years", "yesterday"],
     )
     format: Optional[str] = Field(

@@ -128,10 +128,18 @@ async def on_message(message: cl.Message):
 
     
     # send response
-    response = await runnable.ainvoke({"input": message.content}, config=runnable_config, stop=['Observation:'])
-#    await msg.stream_token(response["output"])
-    msg.content = response["output"]
-    await msg.update()
+    response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
+    await msg.stream_token(response["output"])
+
+#    msg.content = response["output"]
+#    await msg.update()
+#    await msg.send()
+
+    
+#    current_step = cl.context.current_step
+#    print('Current Step:', current_step)
+
+
 
 #    msg.content = response["output"]
 #    await msg.update()
@@ -140,7 +148,7 @@ async def on_message(message: cl.Message):
 #        async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
 #            await msg.stream_token(chunk)
 
-#    await msg.send()
+
     
     # LOOOK HERE FOR STEP
     #https://github.com/Chainlit/cookbook/blob/aa71a1808f0edfbb6d798df90ac2467636086506/bigquery/app.py#L41

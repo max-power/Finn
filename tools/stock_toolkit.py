@@ -46,7 +46,7 @@ class StockBaseTool(BaseTool):
 # TOOLS ###################################################
  
 StockRecommendationTool = StructuredTool(
-    func        = lambda str: yf.Ticker(str).recommendations,
+    func        = lambda symbol: yf.Ticker(symbol).recommendations,
     name        = "StockRecommendationTool",
     description = "Useful for when you need purchase recommendations for a stock.",
     args_schema = StockSymbolSchema,
@@ -55,7 +55,7 @@ StockRecommendationTool = StructuredTool(
 )
 
 StockCashFlowTool = StructuredTool(
-    func        = lambda str: yf.Ticker(str).cash_flow,
+    func        = lambda symbol: yf.Ticker(symbol).cash_flow,
     name        = "StockCashFlowTool",
     description = "Useful for financial analysis when you need to get a cash flow report for a company",
     args_schema = StockSymbolSchema,
@@ -63,7 +63,7 @@ StockCashFlowTool = StructuredTool(
 )
 
 StockIncomeStatementTool = StructuredTool(
-    func        = lambda str: yf.Ticker(str).income_stmt,
+    func        = lambda symbol: yf.Ticker(symbol).income_stmt,
     name        = "StockIncomeStatementTool",
     description = "Useful for financial analysis when you need to get the income statement report for a company",
     args_schema = StockSymbolSchema,
@@ -71,7 +71,7 @@ StockIncomeStatementTool = StructuredTool(
 )
 
 StockBalanceSheetTool = StructuredTool(
-    func        = lambda str: yf.Ticker(str).balance_sheet,
+    func        = lambda symbol: yf.Ticker(symbol).balance_sheet,
     name        = "StockBalanceSheetTool",
     description = "Useful for financial analysis when you need to get the balance sheet for a company",
     args_schema = StockSymbolSchema,

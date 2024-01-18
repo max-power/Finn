@@ -18,6 +18,7 @@ from tools.currency_converter import CurrencyConverterTool
 from tools.date_tool import DateTool
 from tools.calculator_tool import CalculatorTool
 from tools.stock_toolkit import StockToolkit
+from tools.human_input_tool import HumanInputChainlit
 #from tools.plotly_tool import PlotlyPythonAstREPLTool
 
 #chat_model = ChatOllama(model="mistral")
@@ -42,7 +43,8 @@ class Finn:
         self.finn_tools  = [
             DateTool(), 
             CalculatorTool(),
-            CurrencyConverterTool()
+            CurrencyConverterTool(),
+            HumanInputChainlit(),
             #        PythonREPLTool(),
         ]
         

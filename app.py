@@ -15,7 +15,7 @@ from chainlit.input_widget import Select, Slider, Switch
 # LLM Cache
 from langchain.globals import set_llm_cache
 from langchain.cache import SQLiteCache
-set_llm_cache(SQLiteCache(database_path="db/langchain_llm_cache.db"))
+#set_llm_cache(SQLiteCache(database_path="db/langchain_llm_cache.db"))
 
 #
 from typing import Dict, Any, List
@@ -109,8 +109,8 @@ async def on_chat_start():
 async def on_message(message: cl.Message):
     runnable = cl.user_session.get("runnable")
     runnable_config = RunnableConfig(callbacks=[cl.AsyncLangchainCallbackHandler(
-        stream_final_answer=True,
-        answer_prefix_tokens=["Final", "Answer"]
+        stream_final_answer  = True,
+        answer_prefix_tokens = ["Final", "Answer"]
     )])
 
     # check incoming message for attached files
@@ -128,18 +128,19 @@ async def on_message(message: cl.Message):
 
     
     # send response
-    response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
+    response = await runnable.ainvoke({"input": message.content}, config=runnable_config, stop=['Observation:'])
 #    await msg.stream_token(response["output"])
-#    await msg.send()
-
     msg.content = response["output"]
     await msg.update()
-    
-    # async with cl.Step(type="run", name="QA Assistant"):
-    #     async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
-    #         await msg.stream_token(chunk['output'])
 
-    #await msg.send()
+#    msg.content = response["output"]
+#    await msg.update()
+    
+#    async with cl.Step(type="run", name="QA Assistant"):
+#        async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
+#            await msg.stream_token(chunk)
+
+#    await msg.send()
     
     # LOOOK HERE FOR STEP
     #https://github.com/Chainlit/cookbook/blob/aa71a1808f0edfbb6d798df90ac2467636086506/bigquery/app.py#L41
@@ -153,9 +154,11 @@ async def on_message(message: cl.Message):
 # Stop the current task
 @cl.on_stop
 def on_stop():
+    runnable = cl.user_session.get("runnable")
+    # TODO: That's a Hack!
+    runnable.max_iterations = 0
     print("The user wants to stop the task!")
 #    runnable = cl.user_session.get("runnable")
-#    runnable.stop() # there is no stop method
 
     
 

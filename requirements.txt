@@ -4,8 +4,8 @@ numpy
 matplotlib
 plotly
 tabulate
-chainlit==1.0.101
-langchain==0.1.0
+chainlit>=1.0.101
+langchain>=0.1.1
 langchain-community
 langchain-openai
 langchain-experimental

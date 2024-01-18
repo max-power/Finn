@@ -109,7 +109,7 @@ async def on_chat_start():
 async def on_message(message: cl.Message):
     runnable = cl.user_session.get("runnable")
     runnable_config = RunnableConfig(callbacks=[cl.AsyncLangchainCallbackHandler(
-        stream_final_answer  = True,
+        stream_final_answer  = False,
         answer_prefix_tokens = ["Final", "Answer"]
     )])
 
@@ -156,7 +156,7 @@ async def on_message(message: cl.Message):
 def on_stop():
     runnable = cl.user_session.get("runnable")
     # TODO: That's a Hack!
-    runnable.max_iterations = 0
+    #runnable.max_iterations = 0
     print("The user wants to stop the task!")
 #    runnable = cl.user_session.get("runnable")
 

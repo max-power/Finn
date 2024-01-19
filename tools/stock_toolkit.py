@@ -13,6 +13,7 @@ from tools.tools import handle_tool_error
 # finance
 import yfinance as yf
 import json
+from pprint import pprint
 
 # Base Schema for all StockTool
 class StockSymbolSchema(BaseModel):
@@ -96,7 +97,7 @@ class StockNewsTool(StockBaseTool):
     handle_tool_error = handle_tool_error
 
     def _run(self, symbol: str, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
-        return json.dumps(yf.Ticker(symbol).news)
+        return pprint(yf.Ticker(symbol).news)
 
 
 # Stock News Classifier Tool #############################################
@@ -130,8 +131,8 @@ class StockNewsSentimentTool(BaseTool):
 class StockInfoSchema(StockSymbolSchema):
     """Input for StockInfoTool."""
     key: str = Field(
-        description = "Which information to look for. Required! Example: 'longBusinessSummary'. 'key' MUST be a SINGLE JSON STRING.",
-        examples    = ["currentPrice", "shortName", "ebitda", "lastDividendDate", "industry", "fullTimeEmployees", "dayLow"],
+        description = "Which information to look for. Required! USE 'ALL' to get all information at once. Examples: 'longBusinessSummary' or 'payoutRatio'. `key` MUST be a SINGLE JSON STRING.",
+        examples    = ["ALL", "currentPrice", "shortName", "ebitda", "lastDividendDate", "industry", "fullTimeEmployees", "dayLow"],
     )
 
 class StockInfoTool(StockBaseTool):
@@ -169,7 +170,14 @@ class StockInfoTool(StockBaseTool):
     handle_tool_error = handle_tool_error
     
     def _run(self, symbol: str, key: str, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
-        return yf.Ticker(symbol).info[key]
+        x = yf.Ticker(symbol)
+        if key == 'ALL':
+            return pprint(x.info)
+        elif key in x.info:
+            return x.info[key]
+        else:
+            return f"!KEY ERROR: {repr(key)} does not exist!\nALL: \n{pprint(x.info)}"
+                 
         
     async def _arun(self, symbol: str, key: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> str:
         return await run_in_executor(None, self._run, symbol, key, run_manager)

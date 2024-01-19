@@ -6,6 +6,7 @@ from langchain_core.tools import Tool, StructuredTool
 # async
 from langchain.callbacks.manager import AsyncCallbackManagerForToolRun, CallbackManagerForToolRun
 from langchain_core.runnables.config import run_in_executor
+#from langchain.output_parsers import PandasDataFrameOutputParser
 
 # error handling
 from tools.tools import handle_tool_error
@@ -13,7 +14,7 @@ from tools.tools import handle_tool_error
 # finance
 import yfinance as yf
 import json
-from pprint import pprint
+from tabulate import tabulate
 
 # Base Schema for all StockTool
 class StockSymbolSchema(BaseModel):
@@ -97,7 +98,7 @@ class StockNewsTool(StockBaseTool):
     handle_tool_error = handle_tool_error
 
     def _run(self, symbol: str, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
-        return pprint(yf.Ticker(symbol).news)
+        return json.dumps(yf.Ticker(symbol).news)
 
 
 # Stock News Classifier Tool #############################################
@@ -127,19 +128,30 @@ class StockNewsSentimentTool(BaseTool):
 # )
 
 
+def ticker_exists(symbol):
+    try:
+        ticker = yf.Ticker(symbol)
+        # Attempt to fetch information to confirm the symbol exists
+        info = ticker.info
+        return True
+    except ValueError:
+        # If the symbol is not found, a ValueError will be raised
+        return False
+
 # Stock Info Tool #############################################
 class StockInfoSchema(StockSymbolSchema):
     """Input for StockInfoTool."""
     key: str = Field(
-        description = "Which information to look for. Required! USE 'ALL' to get all information at once. Examples: 'longBusinessSummary' or 'payoutRatio'. `key` MUST be a SINGLE JSON STRING.",
+        description = "Which information to look for. Required! 'ALL' return all information at once. Examples: 'longBusinessSummary' or 'payoutRatio'. `key` MUST be a SINGLE JSON STRING.",
         examples    = ["ALL", "currentPrice", "shortName", "ebitda", "lastDividendDate", "industry", "fullTimeEmployees", "dayLow"],
     )
+StockInfoSchema = StockSymbolSchema
 
 class StockInfoTool(StockBaseTool):
     args_schema = StockInfoSchema
     name        = "StockInfoTool"
-    description = """Useful for when you need to find out generel informations about a stock or company. 
-        It REQUIRES a ticker 'symbol' AND 'key' which MUST be one of the following:
+    description = """Useful for when you need to find out generel informations about a stock or company."""
+    """It REQUIRES a ticker 'symbol' AND 'key' which MUST be one of the following:
         [address1, city, state, zip, country, phone, website, industry, 
         industryKey, industryDisp, sector, sectorKey, sectorDisp, longBusinessSummary, 
         fullTimeEmployees, companyOfficers, auditRisk, boardRisk, compensationRisk, 
@@ -164,39 +176,46 @@ class StockInfoTool(StockBaseTool):
         quickRatio, currentRatio, totalRevenue, debtToEquity, revenuePerShare, returnOnAssets, 
         returnOnEquity, grossProfits, freeCashflow, operatingCashflow, earningsGrowth, revenueGrowth, 
         grossMargins, ebitdaMargins, operatingMargins, financialCurrency, trailingPegRatio]
-        
-        It includes the latest stock price with 'currentPrice' as 'key'. For older prices use the StockPriceTool.
     """
     handle_tool_error = handle_tool_error
     
-    def _run(self, symbol: str, key: str, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
-        x = yf.Ticker(symbol)
-        if key == 'ALL':
-            return pprint(x.info)
-        elif key in x.info:
-            return x.info[key]
-        else:
-            return f"!KEY ERROR: {repr(key)} does not exist!\nALL: \n{pprint(x.info)}"
-                 
+    def _run(self, symbol: str, key: str = None, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
+        #return tabulate(yf.Ticker(symbol).info.items())   
+        try: 
+            x = yf.Ticker(symbol)
+            if 'ALL' == str(key).upper():
+                return tabulate(x.info.items())
+            else:
+                return x.info[key]
+            
+        except KeyError:
+            return f"!KEY ERROR: {repr(key)} does not exist!"
+        except ValueError:
+            # If the symbol is not found, a ValueError will be raised
+            return f"!ERROR: no information available for {symbol}!"
+            #return f"!ERROR: {symbol} does not exist!"
+            
         
-    async def _arun(self, symbol: str, key: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> str:
+
+
+    async def _arun(self, symbol: str, key: str = None, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> str:
         return await run_in_executor(None, self._run, symbol, key, run_manager)
 
 
 # Stock Price Tool #############################################
-from langchain.output_parsers import PandasDataFrameOutputParser
+
 
 class StockPriceSchema(StockSymbolSchema):
     """Input for Stock Price Tools."""
     price_type: Optional[str] = Field(
         title="Price type",
-        description="Which price to look for. Allowed values: [Open, High, Low, Close, Volume]. You can ask for multiple prices using Array notation",
-        default="Close", 
+        description="Which price to look for. Allowed values [Open, High, Low, Close, Volume]. You can ask for multiple prices using Array notation",
+        default="Close",
         examples=['Open', ['High', 'Low'], 'Close', 'Volume'],
     )
     interval: str = Field(
         title="Interval", 
-        description=" Valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo. Intraday data cannot extend last 60 days", 
+        description=" Valid input: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo. Intraday data cannot extend last 60 days", 
         default="1d", 
         examples=['1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo']
     )
@@ -222,7 +241,7 @@ class StockPriceTool(StockBaseTool):
     description = "Fetch stock price data using yFinance. Returns: Historical stock data."
     args_schema = StockPriceSchema
     handle_tool_error = handle_tool_error
-    
+
     def _run(
         self, 
         symbol: str, 
@@ -233,37 +252,22 @@ class StockPriceTool(StockBaseTool):
         end_date: str = None,
         run_manager: Optional[CallbackManagerForToolRun] = None,
     ) -> str:
+
         ticker = yf.Ticker(symbol)
-        
-        from datetime import datetime, timedelta
-        def validate_dates(start_str, end_str):
-            print("VALIDATE DATES ##########################################################")
-            print("Start", start_str)
-            print("End  ", end_str)
-            print("#########################################################################")
-            # Convert string inputs to datetime objects
-            start_date = datetime.strptime(start_str, '%Y-%m-%d')
-            end_date   = datetime.strptime(end_str,   '%Y-%m-%d')
-
-            # Ensure end_date is at least 1 day after start_date
-            if end_date == start_date:
-                end_date = start_date + timedelta(days=1)
-
-            return start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d')
 
         if start_date and end_date:
-            start_date, end_date = validate_dates(start_date, end_date)
-            print(start_date, end_date)
+            if end_date == start_date:
+                return "!ERROR: Invalid input: `start_date` MUST BE BEFORE `end_date`"
             data = ticker.history(interval=interval, start=start_date, end=end_date)
         else:
             data = ticker.history(interval=interval, period=period)
             
         ##############################################
         # TODO: pandas DataFrame with or without parser?
-        #return PandasDataFrameOutputParser(dataframe=data)
+        #return PandasDataFrameOutputParser(dataframe=data) or pandasLLM
         ####################################################
 
-        if price_type:
+        if price_type and (price_type in data):
             return data[price_type].to_markdown()
         else:
             return data.to_markdown()
@@ -279,7 +283,6 @@ class StockPriceTool(StockBaseTool):
     ) -> str:
         """Use the tool asynchronously."""
         return await run_in_executor(None, self._run, symbol, price_type, interval, period, start_date, end_date, run_manager)
-
 
 
 # TOOLKIT ####################################################

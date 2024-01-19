@@ -10,14 +10,14 @@ from langchain_core.runnables.config import run_in_executor
 
 class CurrencyConverterSchema(BaseModel):
     """Input for Currency Converter Tools."""
-    amount: str = Field(title="Value", description="The amount to convert", examples=['123.45', '10', '1200.95'])
+    amount: str = Field(title="Amount", description="The amount to convert, ONLY single `amount` value.", examples=['123.45', '10', '1200.95'])
     base:   str = Field(title="Base currency", description="The currency code to convert from", examples=['EUR','USD','JPY'])
     quote:  str = Field(title="Quote currency", description="The currency code to convert to", examples=['EUR','USD','JPY'])
 
 
 class CurrencyConverterTool(BaseTool):
     name        = "CurrencyConverter"
-    description = "Convert from base currency to quote currency."
+    description = "Convert from base currency to quote currency. "
     args_schema = CurrencyConverterSchema
     
     def _run(

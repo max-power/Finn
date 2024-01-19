@@ -127,13 +127,17 @@ class Finn:
             max_iterations        = 10,
             max_execution_time    = 30, # seconds
             verbose               = True,
-            intermediate_steps    = True,
-            handle_parsing_errors = True,
+            intermediate_steps    = False,
+            handle_parsing_errors = "Something went wrong", #True,
 #            return_only_outputs   = True,
 #            include_run_info      = True,
+            early_stopping_method = "force", # does not support "generate"
+            
             agent_kwargs = {
                 "memory_prompts":  [chat_history],
                 "input_variables": ["input", "agent_scratchpad", "chat_history"],
+                "early_stopping_method": "generate",
+                "stop": ["\nObservation:"],
             })
 
     @property

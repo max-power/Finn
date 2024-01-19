@@ -5,25 +5,66 @@ from fastapi.responses import HTMLResponse
 import chainlit as cl
 from finn import Finn
 from langchain.schema.runnable.config import RunnableConfig
-
 # Chainlit Chat Setting
 from chainlit.playground.config import add_llm_provider, get_llm_providers
 from chainlit.playground.providers.langchain import LangchainGenericProvider
 from chainlit.playground.providers.openai import OpenAI, ChatOpenAI
 from chainlit.input_widget import Select, Slider, Switch
-
+from langchain_openai import OpenAIEmbeddings
+# Retrievers
+from langchain.chains.retrieval import create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
+# Text Splitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+# Vector Store
+from langchain_community.vectorstores import Chroma
 # LLM Cache
 from langchain.globals import set_llm_cache
 from langchain.cache import SQLiteCache
-#set_llm_cache(SQLiteCache(database_path="db/langchain_llm_cache.db"))
-
+set_llm_cache(SQLiteCache(database_path="db/app_llm_cache.db"))
 #
 from typing import Dict, Any, List
 from chainlit.element import Element
 
 # List of OpenAI model names
 from utils.openai_models import OPENAI_MODELS
+from utils.file_loader import FileLoader
 
+
+
+
+
+SETTINGS_INPUTS = [
+       Select(
+           id            = "model",
+           label         = "OpenAI Model",
+           items         = {m: m for m in OPENAI_MODELS},
+           initial_value = "gpt-3.5-turbo-1106",
+       ),
+       Switch(
+           id            = "cache", 
+           label         = "Caching", 
+           description   = "Cache the OpenAI results.",
+           initial       = True
+       ),
+       Slider(
+           id            = "temperature",
+           label         = "Temperature",
+           descriptio    = "The temperature of the model. Increasing the temperature will make the model answer more creatively. (Default: 0.0)",
+           min           = 0,
+           max           = 2,
+           step          = 0.1,
+           initial       = 0.0,
+       ),
+       Slider(
+           id            = "max_token",
+           label         = "Max output tokens",
+           initial       = 1024,
+           min           = 0,
+           max           = 2048,
+           step          = 64,
+       ),
+    ]
 
 #model = Ollama(model="mistral")
 # add_llm_provider(LangchainGenericProvider(
@@ -69,38 +110,7 @@ async def setup_agent(settings):
 # Start chat
 @cl.on_chat_start
 async def on_chat_start():
-    settings = await cl.ChatSettings([
-       Select(
-           id            = "model",
-           label         = "OpenAI Model",
-           items         = {m: m for m in OPENAI_MODELS},
-           initial_value = "gpt-3.5-turbo-1106",
-       ),
-       Switch(
-           id            = "cache", 
-           label         = "Caching", 
-           description   = "Cache the OpenAI results.",
-           initial       = True
-       ),
-       Slider(
-           id            = "temperature",
-           label         = "Temperature",
-           descriptio    = "The temperature of the model. Increasing the temperature will make the model answer more creatively. (Default: 0.0)",
-           min           = 0,
-           max           = 2,
-           step          = 0.1,
-           initial       = 0.0,
-       ),
-       Slider(
-           id            = "max_token",
-           label         = "Max output tokens",
-           initial       = 1024,
-           min           = 0,
-           max           = 2048,
-           step          = 64,
-       ),
-    ]).send()
-    
+    settings = await cl.ChatSettings(SETTINGS_INPUTS).send()
     await setup_agent(settings)
 
 ################################################################################
@@ -113,43 +123,38 @@ async def on_message(message: cl.Message):
         answer_prefix_tokens = ["Final", "Answer"]
     )])
 
-    # check incoming message for attached files
-    # files_names = await process_files(message.elements)
-    # if file_names:
-    #     msg.elements.append(
-    #         cl.Text(name="Files", content=file_names, display="inline")
-    #     )
-    
-
-
     # setup response
     msg = cl.Message(content="")
     await msg.send()
 
+    # check incoming message for attached files
+    if message.elements:
+        files = await process_files(message.elements)
+
+#        retrieval_chain = create_retrieval_chain(retriever, document_chain)
+#        answer = retrieval_chain.invoke({"input": })
+#        print(response["answer"])
+
     
     # send response
-    response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
-    await msg.stream_token(response["output"])
+#    response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
+#    await msg.stream_token(response["output"])
 
-#    msg.content = response["output"]
-#    await msg.update()
-#    await msg.send()
+    #async with cl.Step(type="run", name="Finn (Chatbot)"):
+    async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
+        print('Current Step:', cl.context.current_step, '############################')
+        if chunk.get("output"):
+            await msg.stream_token(chunk.get("output"))
 
-    
-#    current_step = cl.context.current_step
-#    print('Current Step:', current_step)
+    if figure:=cl.user_session.get("figure"):
+        msg.elements.append(cl.Plotly(name="chart", figure=figure, display="inline"))
 
-
-
-#    msg.content = response["output"]
-#    await msg.update()
-    
-#    async with cl.Step(type="run", name="QA Assistant"):
-#        async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
-#            await msg.stream_token(chunk)
-
+    await msg.send()
 
     
+    
+
+
     # LOOOK HERE FOR STEP
     #https://github.com/Chainlit/cookbook/blob/aa71a1808f0edfbb6d798df90ac2467636086506/bigquery/app.py#L41
     # EVEN BETTER
@@ -173,14 +178,10 @@ def on_stop():
 
 ################################################################################
 # Process uploaded files
+@cl.step(name="Upload", type="run", root=False)
 async def process_files(files: List[Element]):
-    if not files:
-        return []
-        
-    file_names = ", ".join([file.name for file in files])
-    #file_ids = await upload_files(files)
-        
-    return file_names
+    docs = [FileLoader(file).content for file in files]
+    return Chroma.from_documents(docs, OpenAIEmbeddings())
 
 ################################################################################
 # Other Pages

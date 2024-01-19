@@ -95,9 +95,8 @@ class StockNewsTool(StockBaseTool):
     args_schema = StockSymbolSchema
     handle_tool_error = handle_tool_error
 
-
     def _run(self, symbol: str, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
-        return json.dumps(yf.Ticker(symbol).news) # .to_json(date_format='iso')
+        return json.dumps(yf.Ticker(symbol).news)
 
 
 # Stock News Classifier Tool #############################################
@@ -113,7 +112,8 @@ class StockNewsSentimentTool(BaseTool):
     handle_tool_error=handle_tool_error
 
     def _run(self, text: str, run_manager: Optional[CallbackManagerForToolRun] = None):
-        return NewsClassifier(model="yiyanghkust/finbert-tone").sentiment_for(text)
+        s = NewsClassifier(model="yiyanghkust/finbert-tone").sentiment_for(text)
+        return f"{s['label']}: {round(s['score']*100)}%"
         
     async def _arun(self, text: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None):
         return await run_in_executor(None, self._run, text, run_manager)

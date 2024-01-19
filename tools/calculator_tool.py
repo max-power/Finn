@@ -23,7 +23,7 @@ class CalculatorTool(BaseTool):
                 numexpr.evaluate(
                     expression.strip(),
                     global_dict={},  # restrict access to globals
-                    local_dict={"pi": math.pi, "e": math.e, "^": "**"}
+                    local_dict={"pi": math.pi, "e": math.e}
                 )
             )
         except Exception as e:

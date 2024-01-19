@@ -259,14 +259,10 @@ class StockPriceTool(StockBaseTool):
             data = ticker.history(interval=interval, period=period)
             
         ##############################################
-        # return data
-
         # TODO: pandas DataFrame with or without parser?
         #return PandasDataFrameOutputParser(dataframe=data)
         ####################################################
-        
-#        return {"price": data[price_type], "currency": ticker.info["currency"]}
-        
+
         if price_type:
             return data[price_type].to_markdown()
         else:

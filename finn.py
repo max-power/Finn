@@ -8,10 +8,12 @@ from langchain_community.chat_models import ChatOllama
 from langchain.agents.tools import Tool
 from langchain.agents import create_structured_chat_agent, AgentExecutor
 from langchain.chains import ConversationChain, LLMMathChain
-from langchain.memory import ConversationBufferMemory, ConversationSummaryBufferMemory
+from langchain.memory import ConversationBufferMemory, ConversationSummaryBufferMemory, ChatMessageHistory
 from langchain.prompts import MessagesPlaceholder, ChatPromptTemplate
 from langchain.agents import load_tools
 from tools.tools import *
+
+from langchain.tools.retriever import create_retriever_tool
 
 from langchain_experimental.tools import PythonREPLTool
 from tools.currency_converter import CurrencyConverterTool
@@ -19,7 +21,12 @@ from tools.date_tool import DateTool
 from tools.calculator_tool import CalculatorTool
 from tools.stock_toolkit import StockToolkit
 from tools.human_input_tool import HumanInputChainlit
-#from tools.plotly_tool import PlotlyPythonAstREPLTool
+from tools.plotly_tool import PlotlyPythonAstREPLTool
+
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
+from langchain.docstore.document import Document
 
 #chat_model = ChatOllama(model="mistral")
 #tool_model = Ollama(model="mistral", temperature=temperature)
@@ -44,8 +51,8 @@ class Finn:
             DateTool(), 
             CalculatorTool(),
             CurrencyConverterTool(),
-            HumanInputChainlit(),
-            #        PythonREPLTool(),
+            #HumanInputChainlit(),
+            PlotlyPythonAstREPLTool(),
         ]
         
         # TODO: possible remove!
@@ -74,13 +81,14 @@ class Finn:
 #            top_p        = 0.8,
 #            model_kwargs = self.optional_params
         )
-
+        
     @property
     def tools(self):
-         all_tools = load_tools(self.base_tools, llm=self.base_llm)
-         all_tools.extend(self.finn_tools)
-         all_tools.extend(StockToolkit().get_tools())
-         return all_tools
+        all_tools = load_tools(self.base_tools, llm=self.base_llm)
+        all_tools.extend(self.finn_tools)
+        all_tools.extend(StockToolkit().get_tools())
+        all_tools.append(self.retriever_tool)
+        return all_tools
          
     @property
     def prompt(self):
@@ -98,6 +106,8 @@ class Finn:
         return ConversationSummaryBufferMemory( 
             llm             = self.chat_llm,
             memory_key      = "chat_history",
+            output_key      = "output",
+            chat_memory     = ChatMessageHistory(),
             max_token_limit = self.max_tokens,
             return_messages = True,
             return_intermediate_steps = False,
@@ -129,6 +139,31 @@ class Finn:
     @property
     def runnable(self):
         return self.executor
+        
+    @property
+    def vectorstore(self):
+        return Chroma("document_store", self.embeddings)
+    
+    @property
+    def text_splitter(self):
+        return RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
+    
+    @property
+    def embeddings(self):
+        return OpenAIEmbeddings()
+    
+    @property
+    def vectorstore(self):
+        return Chroma("document_store", self.embeddings)
+
+    @property
+    def retriever_tool(self):
+        return create_retriever_tool(
+            self.vectorstore.as_retriever(),
+            "VectorStoreDocumentSearch",
+            "Searches and returns documents from the human has uploaded. Useful when you need to answer questions about files the user uploaded.",
+        )
+
 
 # BaseLLM
 # https://python.langchain.com/docs/integrations/llms/ollama

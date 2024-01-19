@@ -83,8 +83,11 @@ SETTINGS_INPUTS = [
 @cl.author_rename
 def rename(author: str):
     mapping = {
-        "LLMMathChain": "CalcuBot", 
-        "Chatbot": "Assistant",
+        "LLMMathChain": "Calculator", 
+        "LLMChain": "Assistant",
+        "RunnableAssign<agent_scratchpad>": "Agent",
+        "AgentExecutor": "Planner"
+
     }
     return mapping.get(author, author)
 
@@ -142,7 +145,7 @@ async def on_message(message: cl.Message):
 
     #async with cl.Step(type="run", name="Finn (Chatbot)"):
     async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
-        print('Current Step:', cl.context.current_step, '############################')
+        #print('Current Step:', cl.context.current_step, '############################')
         if chunk.get("output"):
             await msg.stream_token(chunk.get("output"))
 
@@ -150,11 +153,6 @@ async def on_message(message: cl.Message):
         msg.elements.append(cl.Plotly(name="chart", figure=figure, display="inline"))
 
     await msg.send()
-
-    
-    
-
-
     # LOOOK HERE FOR STEP
     #https://github.com/Chainlit/cookbook/blob/aa71a1808f0edfbb6d798df90ac2467636086506/bigquery/app.py#L41
     # EVEN BETTER
@@ -172,8 +170,6 @@ def on_stop():
     #runnable.max_iterations = 0
     print("The user wants to stop the task!")
 #    runnable = cl.user_session.get("runnable")
-
-    
 
 
 ################################################################################

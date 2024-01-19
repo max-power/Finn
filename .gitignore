@@ -1,5 +1,8 @@
 .DS_STORE
 __bot_old
+__files_for_testing/
+.sql
+db/*.db
 .langchain.db
 .files/
 # Byte-compiled / optimized / DLL files

@@ -77,7 +77,7 @@ class PlotlyPythonAstREPLTool(BaseTool):
             cl.user_session.set("figure", fig)
             return "Chart successfully sent to the user. Do not show any image in your reply, only present the chart that has been already sent."
         except Exception as e:
-            print(e)
+            print("PlotlyPythonAstREPLTool Exception", e)
             return e
 
     def _run(

@@ -11,7 +11,7 @@ import re
 
 class CalculatorTool(BaseTool):
     name        = "Calculator"
-    description = "Useful for when you need to answer questions about math."
+    description = "Useful for when you need to answer questions about math. Examples: '2**8', '1230/12 + 99.95'"
     handle_tool_error=handle_tool_error
         
     def _run(
@@ -23,7 +23,7 @@ class CalculatorTool(BaseTool):
                 numexpr.evaluate(
                     expression.strip(),
                     global_dict={},  # restrict access to globals
-                    local_dict={"pi": math.pi, "e": math.e}
+                    local_dict={"pi": math.pi, "e": math.e, "^": "**"}
                 )
             )
         except Exception as e:

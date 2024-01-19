@@ -46,7 +46,7 @@ class StockBaseTool(BaseTool):
 # TOOLS ###################################################
  
 StockRecommendationTool = StructuredTool(
-    func        = lambda symbol: yf.Ticker(symbol).recommendations,
+    func        = lambda symbol: yf.Ticker(symbol).recommendations.to_markdown(),
     name        = "StockRecommendationTool",
     description = "Useful for when you need purchase recommendations for a stock.",
     args_schema = StockSymbolSchema,
@@ -55,7 +55,7 @@ StockRecommendationTool = StructuredTool(
 )
 
 StockCashFlowTool = StructuredTool(
-    func        = lambda symbol: yf.Ticker(symbol).cash_flow,
+    func        = lambda symbol: yf.Ticker(symbol).cash_flow.to_markdown(),
     name        = "StockCashFlowTool",
     description = "Useful for financial analysis when you need to get a cash flow report for a company",
     args_schema = StockSymbolSchema,
@@ -63,7 +63,7 @@ StockCashFlowTool = StructuredTool(
 )
 
 StockIncomeStatementTool = StructuredTool(
-    func        = lambda symbol: yf.Ticker(symbol).income_stmt,
+    func        = lambda symbol: yf.Ticker(symbol).income_stmt.to_markdown(),
     name        = "StockIncomeStatementTool",
     description = "Useful for financial analysis when you need to get the income statement report for a company",
     args_schema = StockSymbolSchema,
@@ -71,7 +71,7 @@ StockIncomeStatementTool = StructuredTool(
 )
 
 StockBalanceSheetTool = StructuredTool(
-    func        = lambda symbol: yf.Ticker(symbol).balance_sheet,
+    func        = lambda symbol: yf.Ticker(symbol).balance_sheet.to_markdown(),
     name        = "StockBalanceSheetTool",
     description = "Useful for financial analysis when you need to get the balance sheet for a company",
     args_schema = StockSymbolSchema,
@@ -85,7 +85,7 @@ class StockDividendTool(StockBaseTool):
     description = "Useful for when you need to find dividends paid by a company. It returns a pandas dataframe which you can further analyse. It requires a ticker symbol as parameter. You MUST obtain a valid ticker symbol first."
 
     def _run(self, symbol: str, run_manager: Optional[CallbackManagerForToolRun] = None):
-        return yf.Ticker(symbol).dividends.to_json(date_format='iso')
+        return yf.Ticker(symbol).dividends.to_markdown()
 
 
 # Stock News Tool #############################################
@@ -182,9 +182,9 @@ class StockPriceSchema(StockSymbolSchema):
     """Input for Stock Price Tools."""
     price_type: Optional[str] = Field(
         title="Price type",
-        description="Which price to look for. Allowed values: [Open, High, Low, Close, Volume]",
+        description="Which price to look for. Allowed values: [Open, High, Low, Close, Volume]. You can ask for multiple prices using Array notation",
         default="Close", 
-        examples=['Open', 'High', 'Low', 'Close', 'Volume'],
+        examples=['Open', ['High', 'Low'], 'Close', 'Volume'],
     )
     interval: str = Field(
         title="Interval", 
@@ -200,25 +200,25 @@ class StockPriceSchema(StockSymbolSchema):
     )
     start_date: Optional[str] = Field(
         title="Start Date",
-        description="Start date string (YYYY-MM-DD) (optional). Don't mix with period!",
+        description="Start date string (YYYY-MM-DD) (optional). IMPORTANT: NEVER mix with arg `period`!",
         examples=['2024-01-10'],
     )
     end_date: Optional[str] = Field(
         title="End Date",
-        description="End date string (YYYY-MM-DD) (optional). end_date MUST BE GREATER THAN start_date. Don't mix with period!",
+        description="End date string (YYYY-MM-DD) (optional). IMPORTANT: `end_date` MUST BE GREATER THAN `start_date`.",
         examples=['2024-01-11'],
     )
 
 class StockPriceTool(StockBaseTool):
     name        = "StockPriceTool"
-    description = "Fetch stock price data using yFinance. Returns: Historical stock data. Input end_date MUST NOT EQUAL start_date."
+    description = "Fetch stock price data using yFinance. Returns: Historical stock data."
     args_schema = StockPriceSchema
     handle_tool_error = handle_tool_error
     
     def _run(
         self, 
         symbol: str, 
-        price_type: str = 'Close', 
+        price_type: str = ['Close'], 
         interval: str = '1d', 
         period: str = '1mo', 
         start_date: str = None, 
@@ -258,7 +258,11 @@ class StockPriceTool(StockBaseTool):
         ####################################################
         
 #        return {"price": data[price_type], "currency": ticker.info["currency"]}
-        return data[price_type].to_json(date_format='iso')
+        
+        if price_type:
+            return data[price_type].to_markdown()
+        else:
+            return data.to_markdown()
 
     async def _arun(self, 
         symbol: str, 

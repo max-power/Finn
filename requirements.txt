@@ -23,3 +23,6 @@ duckduckgo-search
 numexpr
 chromadb
 pymupdf
+beautifulsoup4
+unstructured
+openpyxl

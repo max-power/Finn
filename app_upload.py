@@ -107,8 +107,8 @@ async def on_chat_start():
 async def on_message(message: cl.Message):
     runnable        = cl.user_session.get("runnable")
     runnable_config = RunnableConfig(callbacks=[cl.AsyncLangchainCallbackHandler(
-        #stream_final_answer  = False,
-        #answer_prefix_tokens = ["Final", "Answer"]
+        stream_final_answer  = True,
+        answer_prefix_tokens = ["Final", "Answer"]
     )])
     
     msg = cl.Message(content="", disable_feedback=True)
@@ -119,7 +119,7 @@ async def on_message(message: cl.Message):
         await process_files(message.elements)
         # Let the user know that the system is ready
         msg.content = f"Processing done. You can now ask questions!"
-        await msg.update()
+        await msg.send()
 
     # send response
     response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
@@ -130,10 +130,10 @@ async def on_message(message: cl.Message):
 
 
 
-@cl.step(name="File Upload", type="run", root=True, show_input=True)
+@cl.step(name="File Upload", type="run", root=False)
 async def process_files(files: List[Element]):
     finn      = cl.user_session.get("finn")
     documents = [FileLoader(file).content for file in files]
     finn.vectorstore.add_documents(documents, ids=None) #TODO: what does ids do?
     files_str = "1 file" if len(files)==1 else f"{len(files)} files"
-    return f"{len(files_str)} added to the Vector store."
+    return f"{files_str} added to the Vector store."

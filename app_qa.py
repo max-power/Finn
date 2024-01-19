@@ -38,50 +38,47 @@ import chainlit as cl
 import os
 
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-
+text_splitter   = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+embeddings      = OpenAIEmbeddings()
+message_history = ChatMessageHistory()
+memory          = ConversationBufferMemory(
+                        memory_key="chat_history",
+                        output_key="answer",
+                        chat_memory=message_history,
+                        return_messages=True,
+                    )
 
 @cl.on_chat_start
 async def on_chat_start():
     files = None
-
+    
     # Wait for the user to upload a file
     while files == None:
         files = await cl.AskFileMessage(
             content="Please upload a text file to begin!",
-            accept=["text/plain"],
+            accept=["text/plain", "text/csv", "application/pdf"],
             max_size_mb=20,
             timeout=180,
-        ).send()
+    ).send()
 
-    file = files[0]
+    # Process uplpaded Files
+    for file in files:
+        msg = cl.Message(content=f"Processing `{file.name}`...", disable_feedback=True)
+        await msg.send()
+    
+        # read the uploaded file
+        with open(file.path, "r", encoding="utf-8") as f:
+            text = f.read()
 
-    msg = cl.Message(content=f"Processing `{file.name}`...", disable_feedback=True)
-    await msg.send()
+        # Split the text into chunks
+        texts = text_splitter.split_text(text)
 
-    with open(file.path, "r", encoding="utf-8") as f:
-        text = f.read()
+        # Create a metadata for each chunk
+        metadatas = [{"source": f"{i}-pl"} for i in range(len(texts))]
 
-    # Split the text into chunks
-    texts = text_splitter.split_text(text)
-
-    # Create a metadata for each chunk
-    metadatas = [{"source": f"{i}-pl"} for i in range(len(texts))]
-
-    # Create a Chroma vector store
-    embeddings = OpenAIEmbeddings()
-    docsearch = await cl.make_async(Chroma.from_texts)(
-        texts, embeddings, metadatas=metadatas
-    )
-
-    message_history = ChatMessageHistory()
-
-    memory = ConversationBufferMemory(
-        memory_key="chat_history",
-        output_key="answer",
-        chat_memory=message_history,
-        return_messages=True,
-    )
+        docsearch = await cl.make_async(Chroma.from_texts)(
+            texts, embeddings, metadatas=metadatas
+        )
 
     # Create a chain that uses the Chroma vector store
     chain = ConversationalRetrievalChain.from_llm(
@@ -93,14 +90,16 @@ async def on_chat_start():
     )
 
     # Let the user know that the system is ready
-    msg.content = f"Processing `{file.name}` done. You can now ask questions!"
+    msg.content = f"Processing `{file.name}` done.\n\nYou can now ask questions!"
     await msg.update()
 
+    # save chain to session
     cl.user_session.set("chain", chain)
 
 
 @cl.on_message
 async def main(message: cl.Message):
+    # read chain from session
     chain = cl.user_session.get("chain")  # type: ConversationalRetrievalChain
     cb = cl.AsyncLangchainCallbackHandler()
 
@@ -112,7 +111,7 @@ async def main(message: cl.Message):
 
     if source_documents:
         for source_idx, source_doc in enumerate(source_documents):
-            source_name = f"source_{source_idx}"
+            source_name = f"Source {source_idx}"
             # Create the text element referenced in the message
             text_elements.append(
                 cl.Text(content=source_doc.page_content, name=source_name)

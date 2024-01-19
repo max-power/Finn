@@ -31,7 +31,7 @@ from utils.openai_models import OPENAI_MODELS
 from utils.file_loader import FileLoader
 
 
-
+from finn_callback_handler import FinnCallbackHandler
 
 
 SETTINGS_INPUTS = [
@@ -121,10 +121,13 @@ async def on_chat_start():
 @cl.on_message
 async def on_message(message: cl.Message):
     runnable = cl.user_session.get("runnable")
-    runnable_config = RunnableConfig(callbacks=[cl.AsyncLangchainCallbackHandler(
-        stream_final_answer  = False,
-        answer_prefix_tokens = ["Final", "Answer"]
-    )])
+    runnable_config = RunnableConfig(callbacks=[
+        cl.AsyncLangchainCallbackHandler(
+            stream_final_answer  = False,
+            answer_prefix_tokens = ["Final", "Answer"]
+        ),
+        FinnCallbackHandler()
+    ])
 
     # setup response
     msg = cl.Message(content="")
@@ -140,14 +143,14 @@ async def on_message(message: cl.Message):
 
     
     # send response
-#    response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
-#    await msg.stream_token(response["output"])
+    response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
+    await msg.stream_token(response["output"])
 
     #async with cl.Step(type="run", name="Finn (Chatbot)"):
-    async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
-        #print('Current Step:', cl.context.current_step, '############################')
-        if chunk.get("output"):
-            await msg.stream_token(chunk.get("output"))
+        # async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
+        #     #print('Current Step:', cl.context.current_step, '############################')
+        #     if chunk.get("output"):
+        #         await msg.stream_token(chunk.get("output"))
 
     if figure:=cl.user_session.get("figure"):
         msg.elements.append(cl.Plotly(name="chart", figure=figure, display="inline"))
@@ -159,6 +162,7 @@ async def on_message(message: cl.Message):
     #https://github.com/Chainlit/cookbook/blob/aa71a1808f0edfbb6d798df90ac2467636086506/openai-functions/app.py#L76
     # AND HERE FOR USE WITH TOOLS AND FILES!
     # https://github.com/Chainlit/cookbook/blob/aa71a1808f0edfbb6d798df90ac2467636086506/openai-assistant/app.py#L194
+
 
 
 ################################################################################

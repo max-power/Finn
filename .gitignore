@@ -1,6 +1,7 @@
 .DS_STORE
 __bot_old
 __files_for_testing/
+__*
 .sql
 db/*.db
 .langchain.db

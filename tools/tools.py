@@ -12,7 +12,7 @@ def handle_tool_error(error: ToolException) -> str:
     return (
         "The following errors occurred during tool execution:"
         + error.args[0]
-        + "Please try another tool.")
+        + "Please try another input or another tool.")
 
 
 # Junkyard ##########################################################################

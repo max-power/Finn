@@ -1,16 +1,20 @@
 #welcome-screen {
-  background-image: url('/public/image.png');
-  text-align: center;
-  background-position: 0 25px;
-  background-size: 300px;
-  background-repeat: no-repeat;
-  padding-left: 300px;
-  min-height: 300px;
+  display: flex;
+  justify-content: center;
+  min-height: 100%;
 }
 #welcome-screen img {
   max-width: 400px;
 }
 
-#welcome-screen .markdown-body p {
-  text-align: left;
+#welcome-screen .markdown-body {
+  background-image: url('/public/image.png');
+  background-position: 0 2rem;
+  background-size: 300px;
+  background-repeat: no-repeat;
+  padding-left: 310px;
+  min-height: 350px;
+}
+#welcome-screen .markdown-body p:first-child {
+  margin-bottom: 2.5rem;
 }

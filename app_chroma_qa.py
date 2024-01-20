@@ -40,7 +40,7 @@ def process_pdfs(pdf_storage_path: str):
 
     namespace = "chromadb/my_documents"
     record_manager = SQLRecordManager(
-        namespace, db_url="sqlite:///db/app_chroma_qa_cache.sql"
+        namespace, db_url="sqlite:///db/app_chroma_qa_cache.db"
     )
     record_manager.create_schema()
 

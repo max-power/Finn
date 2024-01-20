@@ -123,6 +123,10 @@ Think step by step!
 
 * * * 
 
+You would be presented with a problem. First understand the problem and devise a plan to solve the problem. 
+Please output the plan starting with the header 'Plan:' and then followed by a numbered list of steps.        
+Ensure the plan has the minimum amount of steps needed to solve the problem. Do not include unnecessary steps.
+
 Begin!
 
 Reminder to ALWAYS respond with a valid json blob of a single action.

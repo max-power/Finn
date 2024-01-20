@@ -4,6 +4,7 @@ __files_for_testing/
 __*
 .sql
 db/*.db
+presentation/
 .langchain.db
 .files/
 # Byte-compiled / optimized / DLL files

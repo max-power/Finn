@@ -68,7 +68,7 @@ custom_css = "/public/stylesheet.css"
 
 [UI.theme.light]
     #background = "#FAFAFE"
-#    paper      = "#FFFFFF"
+    #paper      = "#FFFFFF"
 
     [UI.theme.light.primary]
         main  = "#00AFBC"

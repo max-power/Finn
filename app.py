@@ -52,7 +52,7 @@ SETTINGS_INPUTS = [
            min           = 0,
            max           = 2,
            step          = 0.1,
-           initial       = 0.1,
+           initial       = 0.8,
        ),
        Slider(
            id            = "max_token",
@@ -135,19 +135,21 @@ async def on_message(message: cl.Message):
 
     #response = await finn.answer(message.content, config=runnable_config)
     # generate response
-    response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
-    await msg.send()
+    #response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
+    #await msg.send()
 
     #response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
     # send respons
-    msg.content=response["output"]
+#    msg.content=response["output"]
     #await msg.send()
 
-    # async with cl.Step(type="llm", name="ChatOpenAI", root=True):
-    #     async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
-    #         #print('Current Step:', cl.context.current_step, '############################')
-    #         if chunk.get("output"):
-    #             await msg.stream_token(chunk.get("output"))
+    async with cl.Step(type="llm", name="Finn", root=True):
+        async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
+            #print('Current Step:', cl.context.current_step, '############################')
+            if chunk.get("output"):
+                #msg.content=chunk.get("output")
+                #await msg.update()
+                await msg.stream_token(chunk.get("output"))
 
     if figure:=cl.user_session.get("figure"):
         msg.elements.append(cl.Plotly(name="chart", figure=figure, display="inline"))

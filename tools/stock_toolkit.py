@@ -141,8 +141,8 @@ def ticker_exists(symbol):
 # Stock Info Tool #############################################
 class StockInfoSchema(StockSymbolSchema):
     """Input for StockInfoTool."""
-    key: Optional[str] = Field(
-        description = "Which information to look for. Required! 'ALL' return all information at once. Examples: 'longBusinessSummary' or 'payoutRatio'. If `key` is present it must be a SINGLE JSON STRING.",
+    keys: Optional[List[str]] = Field(
+        description = "Which information to look for. Required! 'ALL' return all information at once. Examples: 'longBusinessSummary', 'payoutRatio'. ",
         examples    = ["currentPrice", "shortName", "ebitda", "lastDividendDate", "industry", "fullTimeEmployees", "dayLow"],
     )
 StockInfoSchema = StockSymbolSchema
@@ -179,26 +179,30 @@ class StockInfoTool(StockBaseTool):
     """
     handle_tool_error = handle_tool_error
     
-    def _run(self, symbol: str, key: str = None, run_manager: Optional[CallbackManagerForToolRun] = None) -> json:
-        #return tabulate(yf.Ticker(symbol).info.items())   
+    def _run(self, symbol: str, keys: List[str] = [], run_manager: Optional[CallbackManagerForToolRun] = None) -> json:
         try: 
             x = yf.Ticker(symbol)
-            return json.dumps(x.info)
-            if 'ALL' == str(key).upper():
-                #return tabulate(x.info.items())
-                return json.dumps(x.info)
-            else:
-                return json.dumps({'text': x.info[key]})
+            data = x.info
+            #data = [{key: item[key] for key in keys} for item in x.info]
+            return json.dumps(data)
+            
+            #return tabulate(yf.Ticker(symbol).info.items())   
+            # return json.dumps(x.info)
+            # if 'ALL' == str(key).upper():
+            #     #return tabulate(x.info.items())
+            #     return json.dumps(x.info)
+            # else:
+            #     return json.dumps({'text': x.info[key]})
             
         except KeyError:
-            return f"!KEY ERROR: {repr(key)} does not exist!"
+            return f"!KEY ERROR: {repr(keys)} does not exist!"
         except ValueError:
             # If the symbol is not found, a ValueError will be raised
             return f"!ERROR: no information available for {symbol}!"
             #return f"!ERROR: {symbol} does not exist!"
 
-    async def _arun(self, symbol: str, key: str = None, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> json:
-        return await run_in_executor(None, self._run, symbol, key, run_manager)
+    async def _arun(self, symbol: str, keys: List[str] = None, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> json:
+        return await run_in_executor(None, self._run, symbol, keys, run_manager)
 
 
 # Stock Price Tool #############################################
@@ -208,7 +212,7 @@ class StockPriceSchema(StockSymbolSchema):
     """Input for Stock Price Tools."""
     price_type: Optional[List[str]] = Field(
         title="Price type",
-        description="Which prices to return. Valid values: 'Open', 'High', 'Low', 'Close', 'Volume'. Always use array notation.",
+        description="Which prices to return. Valid values: ['Open', 'High', 'Low', 'Close', 'Volume']. Always use array notation.",
         default=['Close'],
         examples=[['Open'], ['High', 'Low', 'Close', 'Volume']],
     )

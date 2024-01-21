@@ -6,7 +6,7 @@ from langchain_openai import ChatOpenAI, OpenAI
 from langchain_community.llms import Ollama
 from langchain_community.chat_models import ChatOllama
 from langchain.agents.tools import Tool
-from langchain.agents import AgentExecutor, create_structured_chat_agent, create_json_agent, create_react_agent
+from langchain.agents import AgentExecutor, create_structured_chat_agent, create_json_agent, create_react_agent, create_openai_tools_agent
 from langchain.chains import ConversationChain, LLMMathChain
 from langchain.memory import ConversationBufferMemory, ConversationSummaryBufferMemory, ChatMessageHistory
 from langchain.prompts import MessagesPlaceholder, ChatPromptTemplate
@@ -39,9 +39,9 @@ from langchain_core.runnables import Runnable, RunnablePassthrough
 from langchain.tools.render import render_text_description_and_args
 from langchain.agents.format_scratchpad import format_log_to_str
 from langchain.agents.output_parsers import JSONAgentOutputParser
-from langchain.agents.structured_chat.output_parser import (
-    StructuredChatOutputParserWithRetries,
-)
+from langchain_community.tools.convert_to_openai import format_tool_to_openai_tool
+from langchain.agents.format_scratchpad.openai_tools import format_to_openai_tool_messages
+from langchain.agents.output_parsers.openai_tools import OpenAIToolsAgentOutputParser
 
 class Finn:
     def __init__(self, model_name="gpt-3.5-turbo-1106", temperature=0, max_tokens=1024, cache=True):
@@ -60,7 +60,7 @@ class Finn:
             CalculatorTool(),
             CurrencyConverterTool(),
             #HumanInputChainlit(),
-            PlotlyPythonAstREPLTool(),
+            #PlotlyPythonAstREPLTool(),
         ]
         
         # TODO: possible remove!
@@ -102,36 +102,38 @@ class Finn:
          
     @property
     def prompt(self):
+        #return hub.pull("hwchase17/openai-tools-agent")
         #return hub.pull("hwchase17/structured-chat-agent")
         return ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),
             ("system", f"Today is {datetime.now().strftime('%A, %B %d, %Y %H:%M:%S')}."),
             MessagesPlaceholder("chat_history", optional=True),
             ("human", HUMAN_PROMPT),
+            MessagesPlaceholder(variable_name='agent_scratchpad')
         ])
     
     @property
     def memory(self):
-        # ConversationBufferMemory
-        return ConversationSummaryBufferMemory( 
+        # ConversationSummaryBufferMemory
+        return ConversationBufferMemory( 
             llm             = self.chat_llm,
             memory_key      = "chat_history",
             output_key      = "output",
             chat_memory     = self.history,
             max_token_limit = self.max_tokens,
             return_messages = True,
-            return_intermediate_steps = False,
+            return_intermediate_steps = True,
         )
     
     @property
     def history(self):
         return ChatMessageHistory()
-    
-    
 
     @property
     def agent(self):
         #return create_structured_chat_agent(self.chat_llm, self.tools, self.prompt)
+
+        #return create_openai_tools_agent(self.chat_llm, self.tools, self.prompt)
     
         missing_vars = {"tools", "tool_names", "agent_scratchpad"}.difference(
             self.prompt.input_variables
@@ -143,17 +145,40 @@ class Finn:
             tools=render_text_description_and_args(list(self.tools)),
             tool_names=", ".join([t.name for t in self.tools]),
         )
-        llm_with_stop = self.chat_llm.bind(stop=["Observation:", "Observation: ", "<FINAL_ANSWER>"])
-
-        chain = (
+        llm_with_tools = self.chat_llm.bind(
+            tools=[format_tool_to_openai_tool(tool) for tool in self.tools],
+            #tool_names=", ".join([t.name for t in self.tools]),
+            stop=["Observation:", "Observation: ", "<FINAL_ANSWER>"]
+        )
+        
+        agent = (
             RunnablePassthrough.assign(
-                agent_scratchpad=lambda x: format_log_to_str(x["intermediate_steps"]),
+                agent_scratchpad=lambda x: format_to_openai_tool_messages(
+                    x["intermediate_steps"]
+                )
             )
             | prompt
-            | llm_with_stop
-            | JSONAgentOutputParser()
+            | llm_with_tools
+            | OpenAIToolsAgentOutputParser()
         )
-        return chain
+        return agent
+
+        #structured_chat_Agent_
+        # prompt = self.prompt.partial(
+        #     tools=render_text_description_and_args(list(self.tools)),
+        #     tool_names=", ".join([t.name for t in self.tools]),
+        # )
+        # llm_with_stop = self.chat_llm.bind(stop=["Observation:", "Observation: ", "<FINAL_ANSWER>"])
+
+        # chain = (
+        #     RunnablePassthrough.assign(
+        #         agent_scratchpad=lambda x: format_log_to_str(x["intermediate_steps"]),
+        #     )
+        #     | prompt
+        #     | llm_with_stop
+        #     | JSONAgentOutputParser()
+        # )
+        # return chain
     
     @property
     def executor(self):
@@ -165,17 +190,17 @@ class Finn:
             max_iterations        = 10,
             #max_execution_time    = 30, # seconds
             verbose               = True,
-            #intermediate_steps    = False, 
+            intermediate_steps    = True, 
             handle_parsing_errors = True, #"Something went wrong",
             return_only_outputs   = True,
             #include_run_info      = True,
             early_stopping_method = "force", # does not support "generate"
             
             agent_kwargs = {
-                "memory_prompts":  [chat_history],
-                "input_variables": ["input", "agent_scratchpad", "chat_history"],
+                #"memory_prompts":  [chat_history],
+                #"input_variables": ["input", "agent_scratchpad", "chat_history"],
 #                "early_stopping_method": "generate",
-                "stop": ["Observation:", "\nObservation", "<FINAL_ANSWER>"],
+                #"stop": ["Observation:", "\nObservation", "<FINAL_ANSWER>"],
             }
         )
 

@@ -317,7 +317,7 @@ class StockPredictionTool(BaseTool):
         return pickle.load(open(filename, "rb"))
 
     def classify_prediction(self, prediction, threshold=0.52):
-        labels = { 0: 'Down', 1: 'Up' }
+        labels = { 0: 'Bearish', 1: 'Bullish' }
         return labels.get((prediction[:, 1] > threshold).astype(int)[0])
          
 

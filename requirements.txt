@@ -26,3 +26,4 @@ pymupdf
 beautifulsoup4
 unstructured
 openpyxl
+xgboost

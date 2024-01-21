@@ -285,6 +285,36 @@ class StockPriceTool(StockBaseTool):
         return await run_in_executor(None, self._run, symbol, price_types, interval, period, start_date, end_date, run_manager)
 
 
+# StockPredictionTool ####################################################
+import pickle
+import xgboost as xgb
+class StockPredictionTool(BaseTool):
+    name        = "StockPredictionTool"
+    description = "Useful for when you need to get a prediction of the stock price for the next week. Returns: Up or Down."
+    args_schema = StockSymbolSchema
+    handle_tool_error=handle_tool_error
+
+    def _run(self, symbol: str, period: str = "1mo", run_manager: Optional[CallbackManagerForToolRun] = None):
+        data = yf.Ticker(symbol).history(period=period)
+        probabilities = self.model().predict_proba(data[['Open', 'High', 'Low', 'Close', 'Volume']])
+        return json.dumps({
+            #'prediction': probabilities[:, 1].tolist(),
+            'classification': self.classify_prediction(probabilities)
+        })
+        
+    async def _arun(self, symbol: str, period: str = "1mo", run_manager: Optional[AsyncCallbackManagerForToolRun] = None):
+        return await run_in_executor(None, self._run, symbol, period, run_manager)
+
+    def model(self, filename="stock_prediction_model.pickle"):
+        return pickle.load(open(filename, "rb"))
+
+    def classify_prediction(self, prediction, threshold=0.52):
+        labels = { 0: 'Down', 1: 'Up' }
+        return labels.get((prediction[:, 1] > threshold).astype(int)[0])
+         
+
+
+
 # TOOLKIT ####################################################
 class StockToolkit(BaseToolkit):
     """Toolkit for Stocks. Mostly yFinance tools."""
@@ -295,6 +325,7 @@ class StockToolkit(BaseToolkit):
         StockDividendTool(),
         StockNewsTool(),
         StockNewsSentimentTool(),
+        StockPredictionTool(),
 
         StockRecommendationTool,
         StockCashFlowTool,

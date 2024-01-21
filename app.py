@@ -149,10 +149,15 @@ async def on_message(message: cl.Message):
             if chunk.get("output"):
                 #msg.content=chunk.get("output")
                 #await msg.update()
+                figure=cl.user_session.get("figure")
+                if figure:
+                    msg.elements.append(cl.Plotly(name="chart", figure=figure, display="inline"))
+                
                 await msg.stream_token(chunk.get("output"))
 
-    if figure:=cl.user_session.get("figure"):
-        msg.elements.append(cl.Plotly(name="chart", figure=figure, display="inline"))
+
+        
+        #await msg.update()
 
     await msg.send()
     # LOOOK HERE FOR STEP

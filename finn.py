@@ -60,7 +60,7 @@ class Finn:
             CalculatorTool(),
             CurrencyConverterTool(),
             #HumanInputChainlit(),
-            #PlotlyPythonAstREPLTool(),
+            PlotlyPythonAstREPLTool(),
         ]
         
         # TODO: possible remove!

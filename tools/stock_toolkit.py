@@ -288,10 +288,18 @@ class StockPriceTool(StockBaseTool):
 # StockPredictionTool ####################################################
 import pickle
 import xgboost as xgb
+class StockPredictionTool(StockSymbolSchema):
+    """Input for StockInfoTool."""
+    period: Optional[str] = Field(
+        description="Historical data period (optional). Either Use period parameter or use start and end. Valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max .",
+        default="1mo",
+        examples=['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'],
+    )
+
 class StockPredictionTool(BaseTool):
     name        = "StockPredictionTool"
     description = "Useful for when you need to get a prediction of the stock price for the next week. Returns: Up or Down."
-    args_schema = StockSymbolSchema
+    args_schema = StockPredictionTool
     handle_tool_error=handle_tool_error
 
     def _run(self, symbol: str, period: str = "1mo", run_manager: Optional[CallbackManagerForToolRun] = None):

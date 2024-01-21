@@ -133,14 +133,10 @@ async def on_message(message: cl.Message):
     #docs = [FileLoader(file).content for file in files]
     #docs_ids = await finn.vectorstore.aadd_documents(docs)
 
-    #response = await finn.answer(message.content, config=runnable_config)
     # generate response
-    #response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
-    #await msg.send()
 
+    #response = await finn.answer(message.content, config=runnable_config)
     #response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
-    # send respons
-#    msg.content=response["output"]
     #await msg.send()
 
     async with cl.Step(type="llm", name="Finn", root=True):
@@ -153,13 +149,19 @@ async def on_message(message: cl.Message):
                 if figure:
                     msg.elements.append(cl.Plotly(name="chart", figure=figure, display="inline"))
                 
-                await msg.stream_token(chunk.get("output"))
+                msg.content = chunk.get("output")
+                await msg.update()
+                #await msg.stream_token(chunk.get("output"))
 
 
         
         #await msg.update()
 
     await msg.send()
+
+
+
+
     # LOOOK HERE FOR STEP
     #https://github.com/Chainlit/cookbook/blob/aa71a1808f0edfbb6d798df90ac2467636086506/bigquery/app.py#L41
     # EVEN BETTER

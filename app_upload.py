@@ -31,7 +31,7 @@ from langchain.memory import ConversationBufferMemory, ConversationSummaryBuffer
 # LLM Cache
 from langchain.globals import set_llm_cache
 from langchain.cache import SQLiteCache
-set_llm_cache(SQLiteCache(database_path="db/app_upload_llm_cache.db"))
+#set_llm_cache(SQLiteCache(database_path="db/app_upload_llm_cache.db"))
 
 from datetime import datetime
 from utils.file_loader import FileLoader
@@ -116,10 +116,11 @@ async def on_message(message: cl.Message):
 
     if message.elements:
         msg.content = f"Processing files …"
+        await msg.update()
         await process_files(message.elements)
         # Let the user know that the system is ready
         msg.content = f"Processing done. You can now ask questions!"
-        await msg.send()
+        await msg.update()
 
     # send response
     response = await runnable.ainvoke({"input": message.content}, config=runnable_config)

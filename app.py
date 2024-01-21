@@ -30,9 +30,7 @@ from chainlit.element import Element
 from utils.openai_models import OPENAI_MODELS
 from utils.file_loader import FileLoader
 
-
 from finn_callback_handler import FinnCallbackHandler
-
 
 SETTINGS_INPUTS = [
        Select(
@@ -54,7 +52,7 @@ SETTINGS_INPUTS = [
            min           = 0,
            max           = 2,
            step          = 0.1,
-           initial       = 0.0,
+           initial       = 0.1,
        ),
        Slider(
            id            = "max_token",
@@ -66,18 +64,6 @@ SETTINGS_INPUTS = [
        ),
     ]
 
-#model = Ollama(model="mistral")
-# add_llm_provider(LangchainGenericProvider(
-#     id=model._llm_type,
-#     name="Mistral",
-#     llm=model,
-#     is_chat=True,
-# ))
-# add_llm_provider(OpenAI)
-# add_llm_provider(ChatOpenAI)
-
-
-
 ################################################################################
 # Change name of Message Author in Chainlit UI
 @cl.author_rename
@@ -86,7 +72,8 @@ def rename(author: str):
         "LLMMathChain": "Calculator", 
         "LLMChain": "Assistant",
         "RunnableAssign<agent_scratchpad>": "Agent",
-        "AgentExecutor": "Planner"
+        "AgentExecutor": "Finn",
+        "ChatOpenAI": "LLM"
 
     }
     return mapping.get(author, author)
@@ -95,6 +82,16 @@ def rename(author: str):
 ################################################################################
 # Update settings from Settings Panel
 # https://github.com/Chainlit/cookbook/blob/main/image-gen/app.py 
+from langchain_experimental.plan_and_execute import PlanAndExecute, load_agent_executor, load_chat_planner
+from langchain.memory import ConversationBufferMemory, ConversationSummaryBufferMemory, ChatMessageHistory
+from langchain.prompts import (
+    ChatPromptTemplate,
+    PromptTemplate,
+    SystemMessagePromptTemplate,
+    AIMessagePromptTemplate,
+    HumanMessagePromptTemplate,
+    MessagesPlaceholder
+)
 @cl.on_settings_update
 async def setup_agent(settings):
     finn = Finn(
@@ -103,7 +100,6 @@ async def setup_agent(settings):
         max_tokens  = int(settings["max_token"]),
         cache       = settings["cache"]
     )
-#    await cl.Message(content=f"I am using the {finn.model_name} model now.", author="Chatbot").send()
     cl.user_session.set("finn", finn)
     cl.user_session.set("runnable", finn.runnable)
 
@@ -120,13 +116,11 @@ async def on_chat_start():
 # Message handler
 @cl.on_message
 async def on_message(message: cl.Message):
+    finn = cl.user_session.get("finn")
     runnable = cl.user_session.get("runnable")
     runnable_config = RunnableConfig(callbacks=[
-        cl.AsyncLangchainCallbackHandler(
-            stream_final_answer  = False,
-            answer_prefix_tokens = ["Final", "Answer"]
-        ),
-        FinnCallbackHandler()
+        cl.AsyncLangchainCallbackHandler(),
+        #FinnCallbackHandler()
     ])
 
     # setup response
@@ -134,23 +128,26 @@ async def on_message(message: cl.Message):
     await msg.send()
 
     # check incoming message for attached files
-    if message.elements:
-        files = await process_files(message.elements)
+    #if message.elements:
+    #    files = await process_files(message.elements)
+    #docs = [FileLoader(file).content for file in files]
+    #docs_ids = await finn.vectorstore.aadd_documents(docs)
 
-#        retrieval_chain = create_retrieval_chain(retriever, document_chain)
-#        answer = retrieval_chain.invoke({"input": })
-#        print(response["answer"])
-
-    
-    # send response
+    #response = await finn.answer(message.content, config=runnable_config)
+    # generate response
     response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
-    await msg.stream_token(response["output"])
+    await msg.send()
 
-    #async with cl.Step(type="run", name="Finn (Chatbot)"):
-        # async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
-        #     #print('Current Step:', cl.context.current_step, '############################')
-        #     if chunk.get("output"):
-        #         await msg.stream_token(chunk.get("output"))
+    #response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
+    # send respons
+    msg.content=response["output"]
+    #await msg.send()
+
+    # async with cl.Step(type="llm", name="ChatOpenAI", root=True):
+    #     async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
+    #         #print('Current Step:', cl.context.current_step, '############################')
+    #         if chunk.get("output"):
+    #             await msg.stream_token(chunk.get("output"))
 
     if figure:=cl.user_session.get("figure"):
         msg.elements.append(cl.Plotly(name="chart", figure=figure, display="inline"))
@@ -208,3 +205,13 @@ def hello(request: Request):
 #       Default implementation runs invoke in parallel using a thread pool executor.
 # - bind(**kwargs)
 #       Bind arguments to a Runnable, returning a new Runnable.
+
+#model = Ollama(model="mistral")
+# add_llm_provider(LangchainGenericProvider(
+#     id=model._llm_type,
+#     name="Mistral",
+#     llm=model,
+#     is_chat=True,
+# ))
+# add_llm_provider(OpenAI)
+# add_llm_provider(ChatOpenAI)

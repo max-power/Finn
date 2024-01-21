@@ -8,6 +8,7 @@ from langchain_core.runnables.config import run_in_executor
 import math
 import numexpr
 import re
+import json
 
 class CalculatorTool(BaseTool):
     name        = "Calculator"
@@ -33,7 +34,7 @@ class CalculatorTool(BaseTool):
             )
 
         # Remove any leading and trailing brackets from the output
-        return re.sub(r"^\[|\]$", "", output)
+        return json.dumps({'result': re.sub(r"^\[|\]$", "", output) })
 
     async def _arun(
         self, expression: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None

@@ -83,16 +83,6 @@ def rename(author: str):
 ################################################################################
 # Update settings from Settings Panel
 # https://github.com/Chainlit/cookbook/blob/main/image-gen/app.py 
-from langchain_experimental.plan_and_execute import PlanAndExecute, load_agent_executor, load_chat_planner
-from langchain.memory import ConversationBufferMemory, ConversationSummaryBufferMemory, ChatMessageHistory
-from langchain.prompts import (
-    ChatPromptTemplate,
-    PromptTemplate,
-    SystemMessagePromptTemplate,
-    AIMessagePromptTemplate,
-    HumanMessagePromptTemplate,
-    MessagesPlaceholder
-)
 @cl.on_settings_update
 async def setup_agent(settings):
     finn = Finn(
@@ -157,9 +147,6 @@ async def on_message(message: cl.Message):
                 
     await msg.send()
 
-
-
-
     # LOOOK HERE FOR STEP
     #https://github.com/Chainlit/cookbook/blob/aa71a1808f0edfbb6d798df90ac2467636086506/bigquery/app.py#L41
     # EVEN BETTER
@@ -212,13 +199,3 @@ def hello(request: Request):
 #       Default implementation runs invoke in parallel using a thread pool executor.
 # - bind(**kwargs)
 #       Bind arguments to a Runnable, returning a new Runnable.
-
-#model = Ollama(model="mistral")
-# add_llm_provider(LangchainGenericProvider(
-#     id=model._llm_type,
-#     name="Mistral",
-#     llm=model,
-#     is_chat=True,
-# ))
-# add_llm_provider(OpenAI)
-# add_llm_provider(ChatOpenAI)

@@ -28,9 +28,6 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.docstore.document import Document
 
-#chat_model = ChatOllama(model="mistral")
-#tool_model = Ollama(model="mistral", temperature=temperature)
-
 from datetime import datetime
 
 from prompts.finn_prompt import *
@@ -42,6 +39,9 @@ from langchain.agents.output_parsers import JSONAgentOutputParser
 from langchain_community.tools.convert_to_openai import format_tool_to_openai_tool
 from langchain.agents.format_scratchpad.openai_tools import format_to_openai_tool_messages
 from langchain.agents.output_parsers.openai_tools import OpenAIToolsAgentOutputParser
+
+#chat_model = ChatOllama(model="mistral")
+#tool_model = Ollama(model="mistral", temperature=temperature)
 
 class Finn:
     def __init__(self, model_name="gpt-3.5-turbo-1106", temperature=0, max_tokens=1024, cache=True):
@@ -62,13 +62,6 @@ class Finn:
             #HumanInputChainlit(),
             PlotlyPythonAstREPLTool(),
         ]
-        
-        # TODO: possible remove!
-        self.optional_params = {
-          "top_p": 0.8,
-          "frequency_penalty": 0,
-          "presence_penalty": 0
-        }
 
     @property
     def base_llm(self):
@@ -78,7 +71,6 @@ class Finn:
             temperature  = self.temperature,
             cache        = self.cache,
             streaming    = False,
-#            model_kwargs = self.optional_params
         )
     @property
     def chat_llm(self):
@@ -88,8 +80,11 @@ class Finn:
             temperature  = self.temperature,
             cache        = self.cache,
             streaming    = True,
-#            top_p        = 0.8,
-#            model_kwargs = self.optional_params
+            # model_kwargs = {
+            #     "top_p": 0.8,
+            #     "frequency_penalty": 0,
+            #     "presence_penalty": 0
+            # }
         )
         
     @property
@@ -132,7 +127,6 @@ class Finn:
     @property
     def agent(self):
         #return create_structured_chat_agent(self.chat_llm, self.tools, self.prompt)
-
         #return create_openai_tools_agent(self.chat_llm, self.tools, self.prompt)
     
         missing_vars = {"tools", "tool_names", "agent_scratchpad"}.difference(
@@ -162,24 +156,7 @@ class Finn:
             | OpenAIToolsAgentOutputParser()
         )
         return agent
-
-        #structured_chat_Agent_
-        # prompt = self.prompt.partial(
-        #     tools=render_text_description_and_args(list(self.tools)),
-        #     tool_names=", ".join([t.name for t in self.tools]),
-        # )
-        # llm_with_stop = self.chat_llm.bind(stop=["Observation:", "Observation: ", "<FINAL_ANSWER>"])
-
-        # chain = (
-        #     RunnablePassthrough.assign(
-        #         agent_scratchpad=lambda x: format_log_to_str(x["intermediate_steps"]),
-        #     )
-        #     | prompt
-        #     | llm_with_stop
-        #     | JSONAgentOutputParser()
-        # )
-        # return chain
-    
+        
     @property
     def executor(self):
         chat_history = MessagesPlaceholder(variable_name="chat_history")
@@ -243,8 +220,4 @@ class Finn:
     #     temperature=config["settings"]["temperature"],
     #     top_k=config["settings"]["top_k"],
     #     top_p=config["settings"]["top_p"],
-    # )!
-
-# if __name__ == "__main__":
-#     f = Finn()
-#     f.executor.invoke({'input': 'What is the current apple stock price'})
+    # )

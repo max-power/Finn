@@ -31,6 +31,7 @@ from utils.openai_models import OPENAI_MODELS
 from utils.file_loader import FileLoader
 
 from finn_callback_handler import FinnCallbackHandler
+from chainlit.context import init_http_context
 
 SETTINGS_INPUTS = [
        Select(
@@ -104,7 +105,6 @@ async def setup_agent(settings):
     cl.user_session.set("runnable", finn.runnable)
 
 
-
 ################################################################################
 # Start chat
 @cl.on_chat_start
@@ -118,10 +118,12 @@ async def on_chat_start():
 async def on_message(message: cl.Message):
     finn = cl.user_session.get("finn")
     runnable = cl.user_session.get("runnable")
-    runnable_config = RunnableConfig(callbacks=[
-        cl.AsyncLangchainCallbackHandler(),
-        #FinnCallbackHandler()
-    ])
+    runnable_config = RunnableConfig(
+        #chainlit_context=init_http_context(), 
+        callbacks=[
+            cl.AsyncLangchainCallbackHandler(),
+            #FinnCallbackHandler()
+        ])
 
     # setup response
     msg = cl.Message(content="")
@@ -148,15 +150,11 @@ async def on_message(message: cl.Message):
                 figure=cl.user_session.get("figure")
                 if figure:
                     msg.elements.append(cl.Plotly(name="chart", figure=figure, display="inline"))
-                
+                    msg.update()
                 
                 #msg.content = chunk.get("output")
                 #await msg.update()
                 
-
-
-        
-        
     await msg.send()
 
 

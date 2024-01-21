@@ -36,8 +36,8 @@ class CalculatorTool(BaseTool):
         # Remove any leading and trailing brackets from the output
         return json.dumps({'result': re.sub(r"^\[|\]$", "", output) })
 
-    async def _arun(
-        self, expression: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None
-    ) -> str:
-        """Use the tool asynchronously."""
-        return await run_in_executor(None, self._run, expression)
+    # async def _arun(
+    #     self, expression: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None
+    # ) -> str:
+    #     """Use the tool asynchronously."""
+    #     return await run_in_executor(None, self._run, expression)

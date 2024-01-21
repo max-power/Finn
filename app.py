@@ -143,20 +143,20 @@ async def on_message(message: cl.Message):
         async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
             #print('Current Step:', cl.context.current_step, '############################')
             if chunk.get("output"):
-                #msg.content=chunk.get("output")
-                #await msg.update()
+                await msg.stream_token(chunk.get("output"))
+                
                 figure=cl.user_session.get("figure")
                 if figure:
                     msg.elements.append(cl.Plotly(name="chart", figure=figure, display="inline"))
                 
-                msg.content = chunk.get("output")
-                await msg.update()
-                #await msg.stream_token(chunk.get("output"))
+                
+                #msg.content = chunk.get("output")
+                #await msg.update()
+                
 
 
         
-        #await msg.update()
-
+        
     await msg.send()
 
 

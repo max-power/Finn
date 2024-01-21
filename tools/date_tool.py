@@ -35,8 +35,8 @@ class DateTool(BaseTool):
     ) -> str:
         return moment.date(input).strftime(format)
 
-    async def _arun(
-        self, input="now", format="%A, %B %d, %Y %H:%M:%S", run_manager: Optional[AsyncCallbackManagerForToolRun] = None
-    ) -> str:
-        """Use the tool asynchronously."""
-        return await run_in_executor(None, self._run, input, format)
+    # async def _arun(
+    #     self, input="now", format="%A, %B %d, %Y %H:%M:%S", run_manager: Optional[AsyncCallbackManagerForToolRun] = None
+    # ) -> str:
+    #     """Use the tool asynchronously."""
+    #     return await run_in_executor(None, self._run, input, format)

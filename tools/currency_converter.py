@@ -25,8 +25,8 @@ class CurrencyConverterTool(BaseTool):
     ) -> str:
         return CurrencyRates().convert(base, quote, Decimal(amount))
         
-    async def _arun(
-        self, amount: str, base: str, quote: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None
-    ) -> str:
-        """Use the tool asynchronously."""
-        return await run_in_executor(None, self._run, amount, base, quote)
+    # async def _arun(
+    #     self, amount: str, base: str, quote: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None
+    # ) -> str:
+    #     """Use the tool asynchronously."""
+    #     return await run_in_executor(None, self._run, amount, base, quote)

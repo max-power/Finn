@@ -145,7 +145,6 @@ class StockInfoSchema(StockSymbolSchema):
         description = "Which information to look for. Required! 'ALL' return all information at once. Examples: 'longBusinessSummary', 'payoutRatio'. ",
         examples    = ["currentPrice", "shortName", "ebitda", "lastDividendDate", "industry", "fullTimeEmployees", "dayLow"],
     )
-StockInfoSchema = StockSymbolSchema
 
 class StockInfoTool(StockBaseTool):
     args_schema = StockInfoSchema

@@ -174,10 +174,10 @@ class Finn:
             early_stopping_method = "force", # does not support "generate"
             
             agent_kwargs = {
-                #"memory_prompts":  [chat_history],
-                #"input_variables": ["input", "agent_scratchpad", "chat_history"],
+#                "memory_prompts":  [chat_history],
+#                "input_variables": ["input", "agent_scratchpad", "chat_history"],
 #                "early_stopping_method": "generate",
-                #"stop": ["Observation:", "\nObservation", "<FINAL_ANSWER>"],
+#                "stop": ["Observation:", "\nObservation", "<FINAL_ANSWER>"],
             }
         )
 

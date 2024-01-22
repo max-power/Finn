@@ -38,11 +38,11 @@ class StockBaseTool(BaseTool):
         raise NotImplementedError(f"Function not implemented in {self.name}")
 
     
-    async def _arun(
-        self, symbol: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None
-    ) -> json:
-        """Use the tool asynchronously."""
-        return await run_in_executor(None, self._run, symbol)
+    # async def _arun(
+    #     self, symbol: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None
+    # ) -> json:
+    #     """Use the tool asynchronously."""
+    #     return await run_in_executor(None, self._run, symbol)
 
 
 # TOOLS ###################################################
@@ -117,8 +117,8 @@ class StockNewsSentimentTool(BaseTool):
         s = NewsClassifier(model="yiyanghkust/finbert-tone").sentiment_for(text)
         return json.dumps(s)
         
-    async def _arun(self, text: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None):
-        return await run_in_executor(None, self._run, text, run_manager)
+    # async def _arun(self, text: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None):
+    #     return await run_in_executor(None, self._run, text, run_manager)
 
 # StockNewsSentimentTool = Tool.from_function(
 #     func        = lambda str: NewsClassifier().sentiment_for(str),
@@ -201,8 +201,8 @@ class StockInfoTool(StockBaseTool):
             return f"!ERROR: no information available for {symbol}!"
             #return f"!ERROR: {symbol} does not exist!"
 
-    async def _arun(self, symbol: str, keys: List[str] = None, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> json:
-        return await run_in_executor(None, self._run, symbol, keys, run_manager)
+    # async def _arun(self, symbol: str, keys: List[str] = None, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> json:
+    #     return await run_in_executor(None, self._run, symbol, keys, run_manager)
 
 
 # Stock Price Tool #############################################
@@ -272,17 +272,17 @@ class StockPriceTool(StockBaseTool):
         return data[price_types].to_json(date_format='iso', double_precision=2)
 
 
-    async def _arun(self, 
-        symbol: str, 
-        price_types: List[str] = ['Close'], 
-        interval: str = '1d', 
-        period: str = '1mo',
-        start_date: str = None,
-        end_date: str = None,
-        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
-    ) -> json:
-        """Use the tool asynchronously."""
-        return await run_in_executor(None, self._run, symbol, price_types, interval, period, start_date, end_date, run_manager)
+    # async def _arun(self, 
+    #     symbol: str, 
+    #     price_types: List[str] = ['Close'], 
+    #     interval: str = '1d', 
+    #     period: str = '1mo',
+    #     start_date: str = None,
+    #     end_date: str = None,
+    #     run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+    # ) -> json:
+    #     """Use the tool asynchronously."""
+    #     return await run_in_executor(None, self._run, symbol, price_types, interval, period, start_date, end_date, run_manager)
 
 
 # StockPredictionTool ####################################################
@@ -291,7 +291,7 @@ import xgboost as xgb
 class StockPredictionTool(StockSymbolSchema):
     """Input for StockInfoTool."""
     period: Optional[str] = Field(
-        description="Historical data period (optional). Either Use period parameter or use start and end. Valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max .",
+        description="Historical data period (optional). Valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max.",
         default="1mo",
         examples=['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max'],
     )
@@ -310,8 +310,8 @@ class StockPredictionTool(BaseTool):
             'classification': self.classify_prediction(probabilities)
         })
         
-    async def _arun(self, symbol: str, period: str = "1mo", run_manager: Optional[AsyncCallbackManagerForToolRun] = None):
-        return await run_in_executor(None, self._run, symbol, period, run_manager)
+    # async def _arun(self, symbol: str, period: str = "1mo", run_manager: Optional[AsyncCallbackManagerForToolRun] = None):
+    #     return await run_in_executor(None, self._run, symbol, period, run_manager)
 
     def model(self, filename="stock_prediction_model.pickle"):
         return pickle.load(open(filename, "rb"))

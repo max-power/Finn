@@ -128,24 +128,34 @@ async def on_message(message: cl.Message):
     # generate response
 
     #response = await finn.answer(message.content, config=runnable_config)
-    #response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
-    #await msg.send()
-
     async with cl.Step(type="llm", name="Finn", root=True):
-        async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
-            #print('Current Step:', cl.context.current_step, '############################')
-            if chunk.get("output"):
-                await msg.stream_token(chunk.get("output"))
-                
-                figure=cl.user_session.get("figure")
-                if figure:
-                    msg.elements.append(cl.Plotly(name="chart", figure=figure, display="inline"))
-                    msg.update()
-                
-                #msg.content = chunk.get("output")
-                #await msg.update()
-                
+        response = await runnable.ainvoke({"input": message.content}, config=runnable_config)
+        await msg.stream_token(response['output'])
+        #await msg.update()
+    
     await msg.send()
+
+    
+    #await cl.Message(content=response['output']).send()
+
+    # async with cl.Step(type="llm", name="Finn", root=True):
+    #     async for chunk in runnable.astream({"input": message.content}, config=runnable_config):
+    #         #print('Current Step:', cl.context.current_step, '############################')
+
+    #         if chunk.get("output"):
+    #             await msg.stream_token(chunk.get("output"))
+            
+    #             figure=cl.user_session.get("figure")
+    #             if figure:
+    #                 msg.elements.append(cl.Plotly(name="chart", figure=figure, display="inline"))
+    #                 msg.update()
+
+            
+            
+            #msg.content = chunk.get("output")
+            #await msg.update()
+                
+    #await msg.send()
 
     # LOOOK HERE FOR STEP
     #https://github.com/Chainlit/cookbook/blob/aa71a1808f0edfbb6d798df90ac2467636086506/bigquery/app.py#L41

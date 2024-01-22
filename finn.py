@@ -79,7 +79,7 @@ class Finn:
             model        = self.model_name,
             temperature  = self.temperature,
             cache        = self.cache,
-            streaming    = True,
+            streaming    = False,
             # model_kwargs = {
             #     "top_p": 0.8,
             #     "frequency_penalty": 0,
